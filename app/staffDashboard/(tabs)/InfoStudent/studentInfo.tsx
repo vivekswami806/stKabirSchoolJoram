@@ -11,7 +11,6 @@ import { Buffer } from "buffer";
 import { useRouter } from "expo-router";
 import React, { useContext, useEffect, useState } from "react";
 import {
-  Alert,
   FlatList,
   Platform,
   RefreshControl,
@@ -59,9 +58,10 @@ export default function StudentInfo({ className, onSelectStudent }: Props) {
       const deviceId = await getDeviceId();
       if (!token || !encodedTenant) throw new Error("Auth missing");
       const tenantId = Buffer.from(encodedTenant, "base64").toString("utf-8");
-
+      
       const response = await axios.get(
-        `${API_BASE_URL}student/giveAllActiveStudentByClass?studentClass=${userDetail.staffClass}`,
+        `${API_BASE_URL}student/giveAllActiveStudentByClassAndSection?studentClass=${userDetail.staffClass}&section=${userDetail.staffSection}`,
+        // `${API_BASE_URL}student/giveAllActiveStudentByClass?studentClass=${userDetail.staffClass}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -70,11 +70,13 @@ export default function StudentInfo({ className, onSelectStudent }: Props) {
           },
         }
       );
-       console.log("---giveAllActiveStudentByClass|", response.data?.data[0]);
+      //  console.log("---giveAllActiveStudentByClass|", response.data?.data[0]);
       
       setStudents(response.data?.data || []);
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Failed to load students");
+      console.log(err);
+      
+      // Alert.alert("Error", err.message || "Failed to load students");
     } finally {
       setLoading(false);
       setRefreshing(false);

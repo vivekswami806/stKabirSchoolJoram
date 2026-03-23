@@ -1,17 +1,26 @@
 import { Theme } from "./themeReducer";
 
 export const darkTheme: Theme = {
-     mode: "dark",        // TypeScript now knows this is "dark"
-    background: "#15151f",
-    card: "#020617",
-    text: "#E5E7EB",
-    textSecondary: "#9CA3AF",
-    primary: "#F54927",
-
-    // mode: "light",       // TypeScript now knows this is "light"
-    // background: "rgba(245, 244, 243, 1)",
-    // card: "#FFFFFF",
-    // text: "#111827",
-    // textSecondary: "#6B7280",
-    // primary: "#F54927",
-};
+    mode: "dark",
+  
+    // Backgrounds
+    background: "#0F172A",        // deep slate (NOT pure black)
+    cardBackground: "#1E293B",
+    card: "#1E293B",
+  
+    // Text
+    text: "#F9FAFB",
+    textSecondary: "#94A3B8",
+  
+    // Brand Colors (same family as light)
+    primary: "#F472B6",          // softer pink for dark mode
+    secondary: "#60A5FA",        // lighter blue
+    accent: "#A78BFA",           // soft violet
+    success: "#34D399",
+  
+    // UI Elements
+    buttonText: "#FFFFFF",
+    inputBackGround: "#334155",
+    border: "#334155",
+    errorColor: "#F87171",
+  };

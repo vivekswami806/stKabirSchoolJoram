@@ -359,7 +359,7 @@ export default function AttendanceScreen() {
       />
 
       <View style={styles.quickActionBar}>
-        <Text>Total: {students.length}</Text>
+        <Text style={{color:theme.text}}>Total: {students.length}</Text>
         <TouchableOpacity onPress={markAllPresent}>
           <Text style={{ color: theme.primary }}>Mark All Present</Text>
         </TouchableOpacity>
@@ -566,9 +566,7 @@ function getStyles(theme: Theme) {
 
     // Student list
     listContainer: {
-      backgroundColor: isDark
-        ? '#000104'
-        : '#E9EFFC',
+      backgroundColor: theme.background,
       paddingBottom: 20,
       flex: 1,
     },
@@ -576,18 +574,14 @@ function getStyles(theme: Theme) {
       flexDirection: "row",
       paddingHorizontal: 20,
       paddingVertical: 12,
-      backgroundColor: isDark
-        ? '#000104'
-        : '#E9EFFC',
+      backgroundColor: theme.background,
       alignItems: "center",
     },
     columnHeaderText: {
       flex: 1,
       fontSize: 14,
       fontWeight: "600",
-      color: !isDark
-        ? '#000104'
-        : '#E9EFFC',
+      color:theme.text,
     },
     attendanceHeaders: {
       flexDirection: "row",
@@ -596,9 +590,7 @@ function getStyles(theme: Theme) {
     attendanceHeaderText: {
       fontSize: 14,
       fontWeight: "600",
-      color: !isDark
-        ? '#000104'
-        : '#E9EFFC',
+      color: theme.text,
       width: 60,
       textAlign: "center",
     },
@@ -905,67 +897,8 @@ function getStyles(theme: Theme) {
       fontWeight: '500',
       color: '#333',
     },
-    statusDot: {
-      position: 'absolute',
-      bottom: 4,
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-    },
-    legendContainer: {
-      backgroundColor: '#F9F9F9',
-      padding: 16,
-      borderRadius: 12,
-      marginBottom: 16,
-    },
-    legendTitle: {
-      fontSize: 14,
-      fontWeight: 'bold',
-      color: '#333',
-      marginBottom: 12,
-    },
-    legendRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 8,
-    },
-    legendItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flex: 1,
-    },
-    legendDot: {
-      width: 12,
-      height: 12,
-      borderRadius: 6,
-      marginRight: 8,
-    },
-    legendText: {
-      fontSize: 13,
-      color: '#666',
-    },
-    percentageCard: {
-      backgroundColor: '#E3F2FD',
-      padding: 20,
-      borderRadius: 12,
-      alignItems: 'center',
-      marginBottom: 20,
-    },
-    percentageTitle: {
-      fontSize: 14,
-      color: '#666',
-      marginBottom: 8,
-    },
-    percentageValue: {
-      fontSize: 42,
-      fontWeight: 'bold',
-      color: '#1976D2',
-    },
-    percentageSubtext: {
-      fontSize: 12,
-      color: '#666',
-      marginTop: 4,
-    }, emptyContainer: {
+
+    emptyContainer: {
       flex: 1,
       justifyContent: "center",
       alignItems: "center",

@@ -53,10 +53,8 @@ export default function CustomTabBar({ state, descriptors, navigation }: any) {
           styles.tabBarContainer,
           {
             width: width * 0.92,
-            backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
-            borderColor: isDark
-              ? 'rgba(255,255,255,0.08)'
-              : 'rgba(0,0,0,0.05)',
+            backgroundColor: theme.background,
+            borderColor: theme.background,
           },
         ]}
       >
@@ -88,7 +86,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: any) {
               {isFocused ? (
                 <View style={styles.activeContainer}>
                   <LinearGradient
-                    colors={['#667eea', '#667eea']}
+                    colors={[theme.primary, theme.primary]}
                     style={styles.gradientIcon}
                   >
                     <Ionicons

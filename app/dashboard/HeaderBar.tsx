@@ -251,7 +251,7 @@ export default function Profile() {
           {theme.mode === "dark" && (
             <View style={styles.underlineContainer}>
               <LinearGradient
-                colors={['#8B5CF6', '#3B82F6', 'transparent']}
+                colors={[theme.text, theme.text, 'transparent']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.gradientUnderline}
@@ -350,16 +350,16 @@ function getStyles(theme: Theme) {
       alignItems: 'center',
       marginBottom: 8,
       backgroundColor: isDark
-        ? 'rgba(139, 92, 246, 0.15)'
-        : 'rgba(59, 130, 246, 0.1)',
+      ? `${theme.accent}20`
+      : `${theme.secondary}15`,
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 20,
       alignSelf: 'flex-start',
       borderWidth: 1,
       borderColor: isDark
-        ? 'rgba(139, 92, 246, 0.3)'
-        : 'rgba(59, 130, 246, 0.2)',
+      ? `${theme.accent}20`
+      : `${theme.secondary}15`,
     },
 
     greetingEmoji: {
@@ -369,7 +369,7 @@ function getStyles(theme: Theme) {
 
     greetingText: {
       fontSize: 13,
-      color: isDark ? '#A78BFA' : '#3B82F6',
+      color: theme.secondary,
       fontWeight: '600',
       letterSpacing: 0.5,
     },
@@ -378,17 +378,13 @@ function getStyles(theme: Theme) {
       flexDirection: 'row',
       alignItems: 'center',
       marginBottom: 8,
-      backgroundColor: isDark
-        ? 'rgba(236, 72, 153, 0.15)'
-        : 'rgba(236, 72, 153, 0.1)',
+      backgroundColor:`${theme.primary}15`,
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 20,
       alignSelf: 'flex-start',
       borderWidth: 1,
-      borderColor: isDark
-        ? 'rgba(236, 72, 153, 0.4)'
-        : 'rgba(236, 72, 153, 0.3)',
+      borderColor: `${theme.primary}40`,
     },
 
     birthdayEmoji: {
@@ -398,7 +394,7 @@ function getStyles(theme: Theme) {
 
     birthdayText: {
       fontSize: 13,
-      color: isDark ? '#F9A8D4' : '#EC4899',
+      color: theme.primary,
       fontWeight: '700',
       letterSpacing: 0.5,
     },
@@ -409,7 +405,7 @@ function getStyles(theme: Theme) {
       color: theme.text,
       marginBottom: 4,
       letterSpacing: -0.5,
-      textShadowColor: isDark ? 'rgba(139, 92, 246, 0.3)' : 'transparent',
+      textShadowColor: isDark ? theme.secondary : 'transparent',
       textShadowOffset: { width: 0, height: 2 },
       textShadowRadius: 8,
     },
@@ -426,20 +422,16 @@ function getStyles(theme: Theme) {
 
     profileButton: {
       position: 'relative',
-      shadowColor: isDark ? "#8B5CF6" : "#000",
+      shadowColor: theme.secondary,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: isDark ? 0.4 : 0.15,
       shadowRadius: 12,
       elevation: 8,
-      backgroundColor: isDark
-        ? 'rgba(30, 30, 50, 0.6)'
-        : theme.background,
+      backgroundColor: theme.cardBackground,
       borderRadius: 32,
       padding: 3,
       borderWidth: 2,
-      borderColor: isDark
-        ? 'rgba(139, 92, 246, 0.4)'
-        : 'rgba(200, 200, 200, 0.3)',
+      borderColor:  theme.border
     },
 
     glowRing: {
@@ -451,7 +443,7 @@ function getStyles(theme: Theme) {
       borderRadius: 40,
       backgroundColor: 'transparent',
       borderWidth: 2,
-      borderColor: 'rgba(139, 92, 246, 0.3)',
+      borderColor:  `${theme.accent}50`,
       opacity: 0.6,
     },
 
@@ -464,7 +456,7 @@ function getStyles(theme: Theme) {
       borderRadius: 44,
       backgroundColor: 'transparent',
       borderWidth: 3,
-      borderColor: '#EC4899',
+      borderColor: theme.primary,
     },
 
     profileImage: {
@@ -472,28 +464,26 @@ function getStyles(theme: Theme) {
       height: 56,
       borderRadius: 28,
       borderWidth: 3,
-      borderColor: isDark
-        ? 'rgba(139, 92, 246, 0.5)'
-        : '#fff',
+      borderColor: theme.cardBackground,
     },
 
     statusIndicator: {
       position: 'absolute',
       bottom: 2,
       right: 2,
-      backgroundColor: isDark ? '#1E1E32' : '#fff',
+      backgroundColor: theme.cardBackground,
       borderRadius: 12,
       padding: 3,
       borderWidth: 2,
-      borderColor: isDark ? 'rgba(139, 92, 246, 0.4)' : '#E5E7EB',
+      borderColor: theme.cardBackground,
     },
 
     statusDot: {
       width: 12,
       height: 12,
       borderRadius: 6,
-      backgroundColor: '#10B981',
-      shadowColor: '#10B981',
+      backgroundColor: theme.success,
+      shadowColor: theme.success,
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.8,
       shadowRadius: 4,

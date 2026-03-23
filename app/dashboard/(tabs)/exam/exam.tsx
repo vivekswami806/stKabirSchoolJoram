@@ -114,13 +114,14 @@ const ExamUI: React.FC = () => {
                     />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Examination</Text>
-                <TouchableOpacity onPress={() => router.push('/dashboard/(tabs)/exam/Examdetails')}>
+                <TouchableOpacity></TouchableOpacity>
+                {/* <TouchableOpacity onPress={() => router.push('/dashboard/(tabs)/exam/Examdetails')}>
                     <Ionicons
                         name="settings-outline"
                         size={26}
                         color={theme.mode === 'dark' ? '#E5E7EB' : '#000'}
                     />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
             </View>
 
             {/* Tab Navigation */}

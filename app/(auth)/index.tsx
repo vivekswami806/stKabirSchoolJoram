@@ -1,26 +1,34 @@
 import { ThemeContext } from "@/action/theme/ThemeContext";
-import { blue, pink } from "@/action/theme/light";
+import { getContainerWidth, getDeviceType, getPhoneSize, getResponsiveFontSize, getResponsiveGap, getResponsivePadding, scaleFont, scaleH, scaleW } from "@/utils/responsivedesignsystem";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useContext, useEffect, useRef } from "react";
 import {
   Animated,
-  Dimensions, Image, Pressable,
+  Dimensions,
+  Image,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 
-const { width } = Dimensions.get("window");
-type Role = "studentlogin" | "staffslogin" | "adminslogin";
-export default function App() {
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
+type Role = "studentlogin" | "staffslogin" | "adminslogin";
+
+export default function LoginScreen() {
   const themeState = useContext(ThemeContext);
   if (!themeState) return null;
   const { theme } = themeState;
-  let isDark = theme.mode === "dark";
+  const isDark = theme.mode === "dark";
   const styles = getStyles(theme);
-  const translateY = useRef(new Animated.Value(40)).current;
+
+  // Animation refs
+  const translateY = useRef(new Animated.Value(scaleH(40))).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.8)).current;
 
@@ -54,51 +62,52 @@ export default function App() {
   };
 
   const RoleCard = ({ label, description, icon, role }: any) => {
-    const scale = useRef(new Animated.Value(1)).current;
+    const scaleAnim = useRef(new Animated.Value(1)).current;
 
     return (
       <Pressable
-        onPressIn={() => {
-          Animated.spring(scale, {
+        onPressIn={() =>
+          Animated.spring(scaleAnim, {
             toValue: 0.97,
             useNativeDriver: true,
-          }).start();
-        }}
-        onPressOut={() => {
-          Animated.spring(scale, {
+          }).start()
+        }
+        onPressOut={() =>
+          Animated.spring(scaleAnim, {
             toValue: 1,
             friction: 4,
             useNativeDriver: true,
-          }).start();
-        }}
+          }).start()
+        }
         onPress={() => onSelectRole(role)}
         style={styles.cardPressable}
       >
         <Animated.View
           style={[
             styles.cardWrapper,
-            {
-              transform: [{ scale }],
-            },
+            { transform: [{ scale: scaleAnim }] },
           ]}
         >
           <View style={styles.card}>
-            {/* Left Section - Icon */}
-            <View style={styles.cardLeft}>
-              <View style={styles.iconContainer}>
-                <MaterialIcons name={icon} size={28} color="#1F2937" />
-              </View>
+            <View style={styles.iconContainer}>
+              <MaterialIcons
+                name={icon}
+                size={scaleFont(26)}
+                color={theme.primary}
+              />
             </View>
-
-            {/* Right Section - Text Content */}
             <View style={styles.cardRight}>
               <Text style={styles.cardTitle}>{label}</Text>
-              <Text style={styles.cardDescription}>{description}</Text>
+              <Text numberOfLines={2} style={styles.cardDescription}>
+                {description}
+              </Text>
             </View>
-
-            {/* Arrow */}
             <View style={styles.arrowContainer}>
-              <MaterialIcons name="arrow-forward-ios" size={18} color="#1F2937" />
+              <MaterialIcons
+                name="arrow-forward-ios"
+                size={scaleFont(14)}
+                color={theme.primary}
+              />
             </View>
           </View>
         </Animated.View>
@@ -107,314 +116,274 @@ export default function App() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header Section with Logo */}
-      <View style={styles.header}>
-        <Animated.View
-          style={[
-            styles.headerContent,
-            {
-              opacity,
-              transform: [{ scale: logoScale }],
-            },
-          ]}
-        >
-          <View style={styles.logoContainer}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {/* Header Section */}
+        <View style={styles.header}>
+          <Animated.View
+            style={[
+              styles.headerContent,
+              {
+                opacity,
+                transform: [{ scale: logoScale }],
+              },
+            ]}
+          >
             <View style={styles.logoCircle}>
               <Image
-                source={require(("../../assets/images/icon.png"))} // <-- your image path
-                style={styles.logoCircle2}
+                source={require("../../assets/images/icon.png")}
+                style={styles.logoImage}
                 resizeMode="contain"
               />
             </View>
+            <Text style={styles.institutionName}>Loyola School Harnaut</Text>
+            <Text style={styles.institutionTagline}>Truth Love & Service</Text>
+          </Animated.View>
+        </View>
+
+        {/* Main Content */}
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              opacity,
+              transform: [{ translateY }],
+            },
+          ]}
+        >
+          <View style={styles.welcomeSection}>
+            <Text style={styles.welcomeTitle}>Welcome</Text>
+            <Text style={styles.welcomeSubtitle}>
+              Please select your portal to continue
+            </Text>
           </View>
-          <Text style={styles.institutionName}>Loyola School Harnaut </Text>
-          <Text style={styles.institutionTagline}>Truth Love & Service</Text>
+
+          <View style={styles.rolesContainer}>
+            <RoleCard
+              label="Student Portal"
+              description="Access courses, grades, and resources"
+              icon="school"
+              role="studentlogin"
+            />
+            <RoleCard
+              label="Staff Portal"
+              description="Manage classes, attendance, and records"
+              icon="work"
+              role="staffslogin"
+            />
+            <RoleCard
+              label="Administrator Portal"
+              description="System administration and oversight"
+              icon="admin-panel-settings"
+              role="adminslogin"
+            />
+          </View>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <View style={styles.divider} />
+            <View style={styles.footerContent}>
+              <MaterialIcons
+                name="security"
+                size={scaleFont(14)}
+                color="#64748b"
+              />
+              <Text style={styles.footerText}>Secure Authentication</Text>
+              <Text style={styles.footerDot}>•</Text>
+              <MaterialIcons
+                name="verified-user"
+                size={scaleFont(14)}
+                color="#64748b"
+              />
+              <Text style={styles.footerText}>Protected</Text>
+            </View>
+          </View>
         </Animated.View>
-      </View>
-
-      {/* Main Content */}
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity,
-            transform: [{ translateY }],
-          },
-        ]}
-      >
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>Welcome</Text>
-          <Text style={styles.welcomeSubtitle}>
-            Please select your portal to continue
-          </Text>
-        </View>
-
-        {/* Role Selection Cards */}
-        <View style={styles.rolesContainer}>
-          <RoleCard
-            label="Student Portal"
-            description="Access courses, grades, and resources"
-            icon="school"
-            role="studentlogin"
-          />
-          <RoleCard
-            label="Staff Portal"
-            description="Manage classes, attendance, and records"
-            icon="work"
-            role="staffslogin"
-          />
-          <RoleCard
-            label="Administrator Portal"
-            description="System administration and oversight"
-            icon="admin-panel-settings"
-            role="adminslogin"
-          />
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <View style={styles.divider} />
-          <View style={styles.footerContent}>
-            <MaterialIcons name="security" size={16} color="#64748b" />
-            <Text style={styles.footerText}>Secure Authentication</Text>
-            <Text style={styles.footerDot}>•</Text>
-            <MaterialIcons name="verified-user" size={16} color="#64748b" />
-            <Text style={styles.footerText}>Protected Access</Text>
-          </View>
-        </View>
-      </Animated.View>
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
+
 const getStyles = (theme: any) => {
   const isDark = theme.mode === "dark";
-
-  /* ---------------- BLUE PALETTE ---------------- */
-
-
-  const colors = {
-    background: isDark ? "#0B1220" : "#FEFCE8",
-
-    headerBackground: isDark ? "#0F172A" : "#FEFCE8",
-
-    cardBackground: isDark ? "#111827" : "#FEFCE8",
-
-    border: isDark ? "#1F2937" : "#E5E7EB",
-
-    textPrimary: isDark ? pink[500] : pink[500],
-    textSecondary: isDark ? "#1F2937" : "#1F2937",
-    // textSecondary: isDark ? yellow[900] : yellow[900],
-
-    divider: isDark ? pink[500] : "#E5E7EB",
-
-    arrowBg: isDark ? pink[500] : blue[50],
-
-    iconBg: isDark ? blue[200] : blue[100],
-
-    accent: isDark ? pink[500] : pink[500],
-  };
+  const padding = getResponsivePadding();
+  const fontSizes = getResponsiveFontSize();
+  const containerWidth = getContainerWidth();
+  const gap = getResponsiveGap();
+  const deviceType = getDeviceType();
+  const phoneSize = getPhoneSize();
 
   return StyleSheet.create({
-    /* ---------------- CONTAINER ---------------- */
-
+    // ===== CONTAINER & LAYOUT =====
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: theme.background,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      alignItems: "center",
+      paddingHorizontal: padding.md,
     },
 
-    /* ---------------- HEADER ---------------- */
-
+    // ===== HEADER SECTION =====
     header: {
-      backgroundColor: colors.headerBackground,
-      paddingTop: 60,
-      paddingBottom: 30,
-      paddingHorizontal: 24,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.05,
-      shadowRadius: 8,
-      elevation: 3,
+      width: "100%",
+      maxWidth: containerWidth,
+      paddingTop: scaleH(phoneSize === "XS" ? 24 : 50),
+      paddingBottom: scaleH(20),
+      alignItems: "center",
     },
-
     headerContent: {
       alignItems: "center",
+      width: "100%",
     },
-
-    logoContainer: {
-      marginBottom: 16,
-      borderRadius: 20,
-      padding: 14,
-      // backgroundColor: isDark ? "#0F172A" : "#FFFFFF",
-      // shadowColor: colors.accent,
-      // shadowOffset: { width: 0, height: 6 },
-      // shadowOpacity: 0.3,
-      // shadowRadius: 14,
-      // elevation: 6,
-    },
-
     logoCircle: {
-      width: 80,
-      height: 80,
-      // borderRadius: 20,
-      // backgroundColor: colors.accent,
+      width: scaleW(phoneSize === "XS" ? 80 : 100),
+      height: scaleW(phoneSize === "XS" ? 80 : 100),
+      marginBottom: scaleH(12),
       justifyContent: "center",
       alignItems: "center",
+      borderRadius: scaleW(50),
     },
-    logoCircle2:{
-      width: 130,
-      height: 180,
-      // borderRadius: 20,
-      // backgroundColor: colors.accent,
-      justifyContent: "center",
-      alignItems: "center",
-    }
-,
-    logoText: {
-      fontSize: 40,
-      fontWeight: "bold",
-      color: "#FFFFFF",
+    logoImage: {
+      width: "100%",
+      height: "100%",
     },
-
     institutionName: {
-      fontSize: 28,
+      fontSize: fontSizes.h2,
       fontWeight: "700",
-      color: colors.accent,
-      letterSpacing: 0.5,
-      marginBottom: 4,
+      color: theme.primary,
+      textAlign: "center",
+      paddingHorizontal: padding.md,
+      marginBottom: scaleH(4),
     },
-
     institutionTagline: {
-      fontSize: 14,
-      color: colors.textSecondary,
+      fontSize: fontSizes.caption,
+      color: theme.textSecondary,
       fontWeight: "500",
+      marginTop: scaleH(4),
     },
 
-    /* ---------------- CONTENT ---------------- */
-
+    // ===== MAIN CONTENT =====
     content: {
       flex: 1,
-      paddingHorizontal: 24,
-      paddingTop: 32,
+      width: "100%",
+      maxWidth: containerWidth,
+      paddingHorizontal: padding.md,
     },
-
     welcomeSection: {
-      marginBottom: 28,
+      marginBottom: scaleH(20),
+      marginTop: scaleH(10),
     },
-
     welcomeTitle: {
-      fontSize: 24,
+      fontSize: fontSizes.h2,
       fontWeight: "700",
-      color: colors.textPrimary,
-      marginBottom: 6,
+      color: theme.text,
+      marginBottom: scaleH(8),
     },
-
     welcomeSubtitle: {
-      fontSize: 15,
-      color: colors.textSecondary,
+      fontSize: fontSizes.body,
+      color: theme.textSecondary,
+      lineHeight: scaleFont(20),
     },
 
+    // ===== ROLE CARDS =====
     rolesContainer: {
-      gap: 16,
-      flex: 1,
+      gap: gap,
+      width: "100%",
+      marginBottom: scaleH(24),
     },
-
-    /* ---------------- ROLE CARD ---------------- */
-
     cardPressable: {
       width: "100%",
     },
-
     cardWrapper: {
-      borderRadius: 18,
-      backgroundColor: colors.cardBackground,
+      borderRadius: scaleW(16),
+      backgroundColor: theme.cardBackground || theme.background,
       borderWidth: 1,
-      borderColor: colors.border,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: isDark ? 0.35 : 0.07,
-      shadowRadius: 8,
-      elevation: 3,
+      borderColor: theme.border,
+      overflow: "hidden",
+      ...Platform.select({
+        ios: {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: isDark ? 0.3 : 0.1,
+          shadowRadius: scaleW(4),
+        },
+        android: {
+          elevation: 3,
+        },
+      }),
     },
-
     card: {
       flexDirection: "row",
       alignItems: "center",
-      padding: 20,
-      borderRadius: 18,
+      padding: padding.md,
+      minHeight: scaleH(72),
     },
-
-    cardLeft: {
-      marginRight: 16,
-    },
-
     iconContainer: {
-      width: 52,
-      height: 52,
-      borderRadius: 14,
-      backgroundColor: colors.iconBg,
+      width: scaleW(48),
+      height: scaleW(48),
+      borderRadius: scaleW(12),
+      backgroundColor: isDark
+        ? "rgba(255,255,255,0.05)"
+        : "rgba(0,0,0,0.02)",
       justifyContent: "center",
       alignItems: "center",
+      marginRight: padding.md,
+      flexShrink: 0,
     },
-
     cardRight: {
       flex: 1,
+      marginRight: padding.sm,
     },
-
     cardTitle: {
-      fontSize: 17,
+      fontSize: fontSizes.bodyLarge,
       fontWeight: "700",
-      color: colors.textPrimary,
-      marginBottom: 4,
+      color: theme.text,
+      marginBottom: scaleH(4),
     },
-
     cardDescription: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      lineHeight: 18,
+      fontSize: fontSizes.caption,
+      color: theme.textSecondary,
+      lineHeight: scaleFont(16),
     },
-
     arrowContainer: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      backgroundColor: colors.arrowBg,
+      marginLeft: padding.sm,
       justifyContent: "center",
-      alignItems: "center",
-      marginLeft: 8,
+      flexShrink: 0,
     },
 
-    /* ---------------- FOOTER ---------------- */
-
+    // ===== FOOTER =====
     footer: {
-      paddingVertical: 24,
+      marginTop: "auto",
+      paddingTop: scaleH(16),
+      paddingBottom: scaleH(20),
+      width: "100%",
     },
-
     divider: {
       height: 1,
-      backgroundColor: colors.divider,
-      marginBottom: 16,
+      backgroundColor: theme.border,
+      marginBottom: scaleH(12),
+      opacity: 0.5,
     },
-
     footerContent: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      gap: 8,
+      flexWrap: "wrap",
+      gap: scaleW(6),
     },
-
     footerText: {
-      fontSize: 12,
-      color: colors.textSecondary,
-      fontWeight: "500",
+      fontSize: fontSizes.small,
+      color: theme.textSecondary,
     },
-
     footerDot: {
-      fontSize: 12,
-      color: colors.border,
-      marginHorizontal: 4,
+      color: theme.textSecondary,
+      fontSize: fontSizes.small,
     },
   });
-}
+};

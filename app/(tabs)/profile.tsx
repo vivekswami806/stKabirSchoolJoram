@@ -1,9 +1,17 @@
 import { RootState } from "@/action/store";
 import { logout } from "@/action/student/userContext";
 import { ThemeContext } from "@/action/theme/ThemeContext";
+import { blue, green } from "@/action/theme/light";
 import CollapsibleCard from "@/components/CollapsibleCard";
 import { API_BASE_URL } from "@/config";
 import { getDeviceId } from "@/helper/getDeviceId";
+import {
+  getPhoneSize,
+  getResponsiveFontSize,
+  getResponsivePadding,
+  scaleH,
+  scaleW
+} from "@/utils/responsivedesignsystem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { Buffer } from "buffer";
@@ -15,23 +23,24 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function Profile() {
   const themeState = useContext(ThemeContext);
-if (!themeState) return null;
+  if (!themeState) return null;
 
-const { theme } = themeState;
-const styles = getStyles(theme);
-const isDark = theme.mode === "dark";
+  const { theme } = themeState;
+  const styles = getStyles(theme);
+  const isDark = theme.mode === "dark";
 
   const dispatch = useDispatch();
   const router = useRouter();
   const { userDetail } = useSelector((state: RootState) => state.user);
   const [isPresentToday, setIsPresentToday] = useState(false);
   const [role, setRole] = useState<string | null>(null);
+
   useEffect(() => {
     const init = async () => {
       const storedRole = await AsyncStorage.getItem("auth_role");
@@ -41,7 +50,6 @@ const isDark = theme.mode === "dark";
     };
 
     init();
-
   }, []);
 
   useEffect(() => {
@@ -57,22 +65,20 @@ const isDark = theme.mode === "dark";
           throw new Error("Authentication missing");
         }
 
-
         const tenantId = Buffer.from(encodedTenant, "base64").toString("utf-8");
-        const url = storedRole == "PARENT" ? `${API_BASE_URL}attendance/todayStudentAttendance/${userID}`
-          : `${API_BASE_URL}v2/attendance/todayStaffAttendance?ownerType=${storedRole}&ownerId=${userID}`
-        const { data } = await axios.get(
-          url,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "X-Tenant-ID": tenantId,
-              "X-Device-ID": deviceId,
-            },
-          }
-        );
+        const url =
+          storedRole == "PARENT"
+            ? `${API_BASE_URL}attendance/todayStudentAttendance/${userID}`
+            : `${API_BASE_URL}v2/attendance/todayStaffAttendance?ownerType=${storedRole}&ownerId=${userID}`;
+        const { data } = await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "X-Tenant-ID": tenantId,
+            "X-Device-ID": deviceId,
+          },
+        });
         console.log("---profile Data|", data);
-        
+
         if (storedRole !== "PARENT") {
           setIsPresentToday(data.status === "P");
         } else {
@@ -80,9 +86,9 @@ const isDark = theme.mode === "dark";
         }
       } catch (err) {
         setIsPresentToday(false);
-        console.log(err);
+        console.log("--- err|", err);
       }
-    }
+    };
 
     if (role) fetchAttendance();
   }, [role]);
@@ -133,8 +139,13 @@ const isDark = theme.mode === "dark";
   };
 
   if (!userDetail || !role) return null;
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+    >
       <View style={styles.card}>
         <Text style={styles.header}>Profile</Text>
 
@@ -142,9 +153,14 @@ const isDark = theme.mode === "dark";
           <Image source={{ uri: profileImage }} style={styles.profileImage} />
 
           <View style={styles.statusIndicator}>
-            <View style={isPresentToday ? styles.statusDot : styles.statusDotOffline} />
+            <View
+              style={
+                isPresentToday
+                  ? styles.statusDot
+                  : styles.statusDotOffline
+              }
+            />
           </View>
-
         </View>
 
         <Text style={styles.name}>
@@ -154,52 +170,130 @@ const isDark = theme.mode === "dark";
 
         {/* ================= PERSONAL ================= */}
         <CollapsibleCard title="Personal Information">
-          <InfoRow label="DOB"    value={isStaffLike ? userDetail.dateOfBirth     : userDetail.studentDateOfBirth} />
-          <InfoRow label="Gender" value={isStaffLike ? userDetail.gender          : userDetail.studentGender} />
-          <InfoRow label="Father" value={isStaffLike ? userDetail.staffFatherName : userDetail.studentFatherName} />
-          <InfoRow label="Mother" value={isStaffLike ? userDetail.staffMotherName : userDetail.studentMotherName} />
-          <InfoRow label="Phone"  value={isStaffLike ? userDetail.phoneNumber     : String(userDetail.studentPhoneNumber)} />
-          <InfoRow label="Email"  value={userDetail.email} />
-          <InfoRow label="Address"value={address} />
+          <InfoRow
+            label="DOB"
+            value={
+              isStaffLike
+                ? userDetail.dateOfBirth
+                : userDetail.studentDateOfBirth
+            }
+          />
+          <InfoRow
+            label="Gender"
+            value={
+              isStaffLike ? userDetail.gender : userDetail.studentGender
+            }
+          />
+          <InfoRow
+            label="Father"
+            value={
+              isStaffLike
+                ? userDetail.staffFatherName
+                : userDetail.studentFatherName
+            }
+          />
+          <InfoRow
+            label="Mother"
+            value={
+              isStaffLike
+                ? userDetail.staffMotherName
+                : userDetail.studentMotherName
+            }
+          />
+          <InfoRow
+            label="Phone"
+            value={
+              isStaffLike
+                ? userDetail.phoneNumber
+                : String(userDetail.studentPhoneNumber)
+            }
+          />
+          <InfoRow label="Email" value={userDetail.email} />
+          <InfoRow label="Address" value={address} />
         </CollapsibleCard>
 
         {/* ================= STAFF / ADMIN ================= */}
         {isStaffLike && (
           <CollapsibleCard title="Professional Details">
-            <InfoRow label="Joining Date"    value={userDetail.staffJoiningDate} />
-            <InfoRow label="Previous School" value={userDetail.staffPreviousSchoolName} />
-            <InfoRow label="Subjects"        value={userDetail.teachingSubjects} />
-            <InfoRow label="Qualifications"  value={userDetail.educationalQualifications} />
-            <InfoRow label="Certifications"  value={userDetail.certifications} />
-            <InfoRow label="Specializations" value={userDetail.specializations} />
-            <InfoRow label="Experience"      value={userDetail.workExperience} />
-            <InfoRow label="Languages"       value={userDetail.languagesSpoken} />
-            <InfoRow label="Blood Group"     value={userDetail.staffBloodGroup} />
-            <InfoRow label="Aadhar"          value={String(userDetail.adharNumber)} />
+            <InfoRow
+              label="Joining Date"
+              value={userDetail.staffJoiningDate}
+            />
+            <InfoRow
+              label="Previous School"
+              value={userDetail.staffPreviousSchoolName}
+            />
+            <InfoRow
+              label="Subjects"
+              value={userDetail.teachingSubjects}
+            />
+            <InfoRow
+              label="Qualifications"
+              value={userDetail.educationalQualifications}
+            />
+            <InfoRow
+              label="Certifications"
+              value={userDetail.certifications}
+            />
+            <InfoRow
+              label="Specializations"
+              value={userDetail.specializations}
+            />
+            <InfoRow
+              label="Experience"
+              value={userDetail.workExperience}
+            />
+            <InfoRow
+              label="Languages"
+              value={userDetail.languagesSpoken}
+            />
+            <InfoRow
+              label="Blood Group"
+              value={userDetail.staffBloodGroup}
+            />
+            <InfoRow
+              label="Aadhar"
+              value={String(userDetail.adharNumber)}
+            />
           </CollapsibleCard>
         )}
 
         {/* ================= PARENT ================= */}
         {isParent && (
           <CollapsibleCard title="Student & Transport Details">
-            <InfoRow label="Class"         value={userDetail.studentClass} />
-            <InfoRow label="Section"       value={userDetail.classSection} />
-            <InfoRow label="Admission No"  value={userDetail.studentAdmissionNumber} />
-            <InfoRow label="Joining Date"  value={userDetail.studentJoiningDate} />
-            <InfoRow label="Religion"      value={userDetail.religion} />
-            <InfoRow label="Caste Category"value={userDetail.casteCategory} />
-            <InfoRow label="Bus Number"    value={userDetail.busNumber} />
-            <InfoRow label="Bus Route"     value={userDetail.busRoute} />
-            <InfoRow label="Driver Name"   value={userDetail.driverName} />
-            <InfoRow label="Driver Contact"value={String(userDetail.busDriverNumber)} />
+            <InfoRow label="Class" value={userDetail.studentClass} />
+            <InfoRow label="Section" value={userDetail.classSection} />
+            <InfoRow
+              label="Admission No"
+              value={userDetail.studentAdmissionNumber}
+            />
+            <InfoRow
+              label="Joining Date"
+              value={userDetail.studentJoiningDate}
+            />
+            <InfoRow label="Religion" value={userDetail.religion} />
+            <InfoRow
+              label="Caste Category"
+              value={userDetail.casteCategory}
+            />
+            <InfoRow label="Bus Number" value={userDetail.busNumber} />
+            <InfoRow label="Bus Route" value={userDetail.busRoute} />
+            <InfoRow label="Driver Name" value={userDetail.driverName} />
+            <InfoRow
+              label="Driver Contact"
+              value={String(userDetail.busDriverNumber)}
+            />
           </CollapsibleCard>
         )}
-        {isStaffLike && (
-          <CollapsibleCard title="My Attendance Details" onPress={() =>
-            router.push("/staffDashboard/(tabs)/totalattendance")
-          }>
-            <Text style={{ color: styles.link.color }}></Text>
 
+        {isStaffLike && (
+          <CollapsibleCard
+            title="My Attendance Details"
+            onPress={() =>
+              router.push("/staffDashboard/(tabs)/totalattendance")
+            }
+          >
+            <Text style={{ color: styles.link.color }}></Text>
           </CollapsibleCard>
         )}
 
@@ -211,7 +305,9 @@ const isDark = theme.mode === "dark";
         {isStaffLike && (
           <TouchableOpacity
             style={styles.resetPassword}
-            onPress={() => router.replace("/staffDashboard/resetstaffpassword")}
+            onPress={() =>
+              router.replace("/staffDashboard/resetstaffpassword")
+            }
           >
             <Text style={styles.resetText}>Reset Password</Text>
           </TouchableOpacity>
@@ -227,15 +323,15 @@ const InfoRow = React.memo(
   ({ label, value }: { label: string; value?: string }) => {
     const themeState = useContext(ThemeContext);
     if (!themeState) return null;
-    
+
     const { theme } = themeState;
     const styles = getStyles(theme);
-    return(
+    return (
       <View style={styles.infoRow}>
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.value}>{value || "-"}</Text>
       </View>
-    )
+    );
   }
 );
 
@@ -243,116 +339,105 @@ const InfoRow = React.memo(
 
 const getStyles = (theme: any) => {
   const isDark = theme.mode === "dark";
-
-  const colors = {
-    background: isDark ? "#0f172a" : "#eef2f7",
-    card: isDark ? "#1e293b" : "#ffffff",
-    textPrimary: isDark ? "#f1f5f9" : "#111827",
-    textSecondary: isDark ? "#94a3b8" : "#6b7280",
-    border: isDark ? "#334155" : "#e5e7eb",
-    avatarBorder: isDark ? "#818cf8" : "#4f46e5",
-    online: "#22c55e",
-    offline: "#ef4444",
-    logoutBg: isDark ? "#3f1d1d" : "#fee2e2",
-    logoutText: isDark ? "#f87171" : "#dc2626",
-    resetBg: isDark ? "#123524" : "#e6ffee",
-    resetText: isDark ? "#4ade80" : "#16a34a",
-    link: isDark ? "#93c5fd" : "#007AFF",
-    dotBorder: isDark ? "#1e293b" : "#ffffff",
-  };
-
+  const padding = getResponsivePadding();
+  const fonts = getResponsiveFontSize();
+  const phoneSize = getPhoneSize();
   return StyleSheet.create({
-    link: { color: colors.link },
+    link: { color: blue[500] },
 
     container: {
       flex: 1,
       backgroundColor: theme.background,
-      paddingTop: 30,
+      paddingTop: scaleH(20),
     },
 
     card: {
-      backgroundColor: colors.card,
-      margin: 16,
-      borderRadius: 24,
-      padding: 24,
+      backgroundColor: theme.background,
+      margin: scaleW(6),
+      borderRadius: scaleW(24),
+      padding: padding.md,
     },
 
     header: {
-      fontSize: 26,
+      fontSize: fonts.h1,
       fontWeight: "700",
       textAlign: "center",
-      color: colors.textPrimary,
+      color: theme.textPrimary,
+      marginBottom: scaleH(6),
     },
 
     name: {
-      fontSize: 22,
+      fontSize: fonts.h2,
       fontWeight: "700",
       textAlign: "center",
-      color: colors.textPrimary,
+      color: theme.textPrimary,
+      marginTop: scaleH(6),
     },
 
     subtitle: {
-      fontSize: 14,
-      color: colors.textSecondary,
+      fontSize: fonts.body,
+      color: theme.textSecondary,
       textAlign: "center",
-      marginBottom: 20,
+      marginBottom: scaleH(10),
     },
 
     infoRow: {
       flexDirection: "row",
       justifyContent: "space-between",
-      paddingVertical: 12,
+      paddingVertical: scaleH(12),
       borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      borderBottomColor: theme.border,
     },
 
     label: {
-      fontSize: 14,
-      color: colors.textSecondary,
+      fontSize: fonts.small,
+      color: theme.textSecondary,
       flex: 1,
     },
 
     value: {
-      fontSize: 14,
+      fontSize: fonts.small,
       fontWeight: "600",
       textAlign: "right",
       flex: 1.3,
-      color: colors.textPrimary,
+      color: theme.textPrimary,
     },
 
     logoutButton: {
-      backgroundColor: colors.logoutBg,
-      borderRadius: 14,
-      paddingVertical: 14,
-      marginTop: 10,
+      backgroundColor: theme.errorColor,
+      borderRadius: scaleW(14),
+      paddingVertical: scaleH(14),
+      marginTop: scaleH(10),
     },
 
     logoutText: {
-      color: colors.logoutText,
-      fontSize: 16,
+      color: theme.buttonText,
+      fontSize: fonts.body,
       fontWeight: "700",
       textAlign: "center",
     },
 
     resetPassword: {
-      backgroundColor: colors.resetBg,
-      borderRadius: 14,
-      paddingVertical: 14,
-      marginTop: 10,
+      backgroundColor: green[400],
+      borderRadius: scaleW(14),
+      
+      paddingVertical: scaleH(14),
+      marginTop: scaleH(10),
+      marginBottom: scaleH(20),
     },
 
     resetText: {
-      color: colors.resetText,
-      fontSize: 16,
+      color: theme.buttonText,
+      fontSize: fonts.body,
       fontWeight: "700",
       textAlign: "center",
     },
 
     imageContainer: {
-      width: 80,
-      height: 80,
+      width: scaleW(phoneSize === "XS" ? 70 : 80),
+      height: scaleW(phoneSize === "XS" ? 70 : 80),
       position: "relative",
-      marginVertical: 16,
+      marginVertical: scaleH(16),
       alignSelf: "center",
       alignItems: "center",
       justifyContent: "center",
@@ -361,37 +446,35 @@ const getStyles = (theme: any) => {
     profileImage: {
       width: "100%",
       height: "100%",
-      borderRadius: 40,
-      borderWidth: 4,
-      borderColor: colors.avatarBorder,
+      borderRadius: scaleW(40),
     },
 
     statusIndicator: {
       position: "absolute",
       bottom: 0,
       right: 0,
-      width: 20,
-      height: 20,
+      width: scaleW(20),
+      height: scaleW(20),
       alignItems: "center",
       justifyContent: "center",
     },
 
     statusDot: {
-      width: 12,
-      height: 12,
-      borderRadius: 6,
-      backgroundColor: colors.online,
-      borderWidth: 2,
-      borderColor: colors.dotBorder,
+      width: scaleW(12),
+      height: scaleW(12),
+      borderRadius: scaleW(6),
+      backgroundColor: theme.success,
+      borderWidth: scaleW(2),
+      borderColor:theme.primary,
     },
 
     statusDotOffline: {
-      width: 12,
-      height: 12,
-      borderRadius: 6,
-      backgroundColor: colors.offline,
-      borderWidth: 2,
-      borderColor: colors.dotBorder,
+      width: scaleW(12),
+      height: scaleW(12),
+      borderRadius: scaleW(6),
+      backgroundColor: theme.errorColor,
+      borderWidth: scaleW(1),
+      borderColor: theme.primary,
     },
   });
 };

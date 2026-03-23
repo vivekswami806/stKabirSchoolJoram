@@ -24,14 +24,7 @@ export default function AdminDashboard() {
     { icon: '📢', label: 'Notice', color: '#22C55E', bg: '#F0FDF4', route: '/dashboard/(tabs)/notice' },
   ];
 
-
-  const lectures = [
-    { subject: 'Maths Lecture in 7th B', time: '10:30 To 11:30 AM' },
-    { subject: 'Math', time: '10:30 To 11:30 AM' },
-  ];
-
   const handleMenuPress = (route: any) => {
-
     router.push(route);
   };
 
@@ -40,13 +33,6 @@ export default function AdminDashboard() {
       {/* Banner Card */}
       <Profile />
       <View style={styles.bannerCard}>
-        <View style={styles.bannerContent}>
-          <Text style={styles.bannerTitle}>Check New Student</Text>
-          <Text style={styles.bannerTitle}>Entry In Your Class</Text>
-          <TouchableOpacity style={styles.bannerButton} onPress={() => { router.replace('/adminDashboard/(tabs)/InfoStudent/parentscreen') }}>
-            <Text style={styles.bannerButtonText}>Check Now</Text>
-          </TouchableOpacity>
-        </View>
         <BannerImage />
       </View>
       {/* <BannerHeaderCompSchool/> */}
@@ -81,18 +67,6 @@ export default function AdminDashboard() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.lecturesScroll}
         >
-          {/* {lectures.map((lecture, index) => (
-            <View key={index} style={styles.lectureCard}>
-              <Text style={styles.lectureSubject}>{lecture.subject}</Text>
-
-              <View style={styles.lectureFooter}>
-                <View style={styles.timePill}>
-                  <Ionicons name="time-outline" size={20} color="#000" />
-                  <Text style={styles.lectureTime}>{lecture.time}</Text>
-                </View>
-              </View>
-            </View>
-          ))}*/}
         </ScrollView>
       </View>
     </ScrollView>
@@ -150,7 +124,7 @@ function getStyles(theme: Theme) {
       marginHorizontal: 20,
       marginBottom: 24,
       borderRadius: 16,
-      padding: 20,
+      padding: 0,
       justifyContent: 'space-between',
       alignItems: 'center',
       overflow: 'hidden',

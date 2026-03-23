@@ -91,11 +91,7 @@ export default function TeacherInfo({ onSelectStudent }: Props) {
 
   return (
     <LinearGradient
-      colors={
-        isDark
-          ? ["#0f172a", "#1e293b"]
-          : ["#f8fafc", "#e2e8f0"]
-      }
+      colors={[theme.background, theme.background]}
       style={{ flex: 1 }}
     >
       <View style={styles.container}>
@@ -105,7 +101,7 @@ export default function TeacherInfo({ onSelectStudent }: Props) {
             <Ionicons
               name="arrow-back"
               size={26}
-              color={isDark ? "#fff" : "#000"}
+              color={theme.background}
             />
           </TouchableOpacity>
           <Text style={styles.headerText}>Staff Details</Text>
@@ -125,7 +121,7 @@ export default function TeacherInfo({ onSelectStudent }: Props) {
                   setRefreshing(true);
                   fetchTeachersDetails();
                 }}
-                tintColor="#4C8EF7"
+                tintColor={theme.primary}
               />
             }
             renderItem={({ item }) => (

@@ -47,13 +47,13 @@ function StudentDashboard() {
     <ScrollView style={styles.container}>
       <Profile />
       <View style={styles.banner}>
-        <View style={styles.bannerContent}>
+        {/* <View style={styles.bannerContent}>
           <Text style={styles.bannerTitle}>Check updated Notice</Text>
           <Text style={styles.bannerTitle}>work for you.</Text>
           <TouchableOpacity style={styles.bannerButton} onPress={() => { router.replace('/dashboard/(tabs)/notice') }}>
             <Text style={styles.bannerButtonText}>Check Now</Text>
           </TouchableOpacity>
-        </View>
+        </View> */}
         <BannerImage />
       </View>
 
@@ -170,7 +170,7 @@ function getStyles(theme: Theme) {
       marginHorizontal: 20,
       marginBottom: 24,
       borderRadius: 16,
-      padding: 20,
+      padding: 0,
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',

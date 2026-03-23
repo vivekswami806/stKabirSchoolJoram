@@ -20,7 +20,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { ToastService } from "react-native-toastier";
 import { useSelector } from "react-redux";
@@ -364,19 +364,10 @@ const ChatGroupsScreen: React.FC = () => {
             <TextInput
               style={styles.modalInput}
               placeholder="Group name"
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.primary}
               value={groupName}
               onChangeText={setGroupName}
             />
-
-            {/* <TextInput
-              style={styles.modalInput}
-              placeholder="Emoji (e.g. 📚)"
-              placeholderTextColor="#999"
-              value={groupEmoji}
-              onChangeText={setGroupEmoji}
-              maxLength={2}
-            /> */}
 
             <StudentFilters
               styles={styles}
@@ -392,7 +383,7 @@ const ChatGroupsScreen: React.FC = () => {
               selectedSection={selectedSection}
               setSelectedSection={setSelectedSection}
               onDatePress={() => { }}
-              role={"STAFF" || "ADMIN"}
+              role={"STAFF_CHAT" || "ADMIN"}
             />
 
             <Text style={styles.sectionTitle}>
@@ -499,22 +490,22 @@ function getStyles(theme: Theme) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: isDark ? "#0B1220" : "#FFFFFF",
-      paddingTop: Platform.OS === "ios" ? 50 : 20,
+      backgroundColor:theme.background,
+      paddingTop: Platform.OS === "ios" ? 30 : 20,
     },
     header: {
       fontSize: 28,
       fontWeight: "bold",
       textAlign: "center",
       marginVertical: 20,
-      color: isDark ? "#FFF" : "#0B1220",
+      color: theme.text,
     },
     searchContainer: {
       flexDirection: "row",
-      backgroundColor: isDark ? "#1A1A2E" : "#f5f5f5",
+      backgroundColor: theme.cardBackground,
       marginHorizontal: 16,
       marginVertical: 10,
-      paddingHorizontal: 16,
+      paddingHorizontal: 6,
       paddingVertical: 12,
       borderRadius: 12,
       alignItems: "center",
@@ -523,7 +514,7 @@ function getStyles(theme: Theme) {
       flex: 1,
       fontSize: 16,
       marginLeft: 10,
-      color: isDark ? "#FFF" : "#000",
+      color: theme.text,
     },
     groupItemContainer: {
       flexDirection: "row",
@@ -531,7 +522,7 @@ function getStyles(theme: Theme) {
       marginHorizontal: 16,
       marginVertical: 8,
       borderRadius: 12,
-      backgroundColor: isDark ? "#1A1A2E" : "#f9f9f9",
+      backgroundColor: theme.text,
       overflow: "hidden",
     },
     groupItem: {
@@ -551,7 +542,7 @@ function getStyles(theme: Theme) {
     groupName: {
       fontSize: 17,
       fontWeight: "600",
-      color: isDark ? "#FFF" : "#0B1220",
+      color: theme.text,
       marginBottom: 4,
     },
     groupMembers: { fontSize: 14, color: isDark ? "#999" : "#666" },
@@ -569,7 +560,7 @@ function getStyles(theme: Theme) {
     emptyText: {
       fontSize: 18,
       fontWeight: "600",
-      color: isDark ? "#FFF" : "#0B1220",
+      color: theme.text,
       marginBottom: 8,
     },
     emptySubText: { fontSize: 14, color: isDark ? "#999" : "#666" },
@@ -602,7 +593,7 @@ function getStyles(theme: Theme) {
     modal: {
       width: "92%",
       maxHeight: "90%",
-      backgroundColor: isDark ? "#1A1A2E" : "#fff",
+      backgroundColor: theme.background,
       borderRadius: 16,
       padding: 20,
     },
@@ -615,27 +606,27 @@ function getStyles(theme: Theme) {
     modalTitle: {
       fontSize: 20,
       fontWeight: "700",
-      color: isDark ? "#FFF" : "#000",
+      color:theme.text,
     },
     modalInput: {
       borderWidth: 1,
-      borderColor: isDark ? "#333" : "#ddd",
+      borderColor: theme.primary,
       borderRadius: 8,
       padding: 12,
       marginBottom: 12,
       fontSize: 16,
-      color: isDark ? "#FFF" : "#000",
-      backgroundColor: isDark ? "#111" : "#fafafa",
+      color: theme.text,
+      backgroundColor: theme.cardBackground,
     },
     sectionTitle: {
       fontSize: 15,
       fontWeight: "600",
-      color: isDark ? "#fff" : "#0B1220",
+      color: theme.text,
       marginVertical: 10,
     },
     noStudentsText: {
       fontSize: 14,
-      color: isDark ? "#888" : "#aaa",
+      color: theme.text,
       textAlign: "center",
       marginVertical: 8,
     },
@@ -648,7 +639,7 @@ function getStyles(theme: Theme) {
       borderBottomWidth: 1,
       borderColor: isDark ? "#333" : "#eee",
     },
-    studentName: { fontSize: 15, color: isDark ? "#FFF" : "#0B1220" },
+    studentName: { fontSize: 15, color: theme.text, },
     modalActions: {
       flexDirection: "row",
       justifyContent: "flex-end",
@@ -667,7 +658,7 @@ function getStyles(theme: Theme) {
     },
     cancel: { color: "#ff3333", fontWeight: "600", fontSize: 15 },
     createBtnModal: {
-      backgroundColor: "#006600",
+      backgroundColor: theme.primary,
       borderRadius: 8,
       paddingVertical: 10,
       paddingHorizontal: 20,
@@ -706,7 +697,7 @@ function getStyles(theme: Theme) {
       borderBottomWidth: 1,
       borderBottomColor: isDark ? "#333" : "#eee",
     },
-    modalItemText: { fontSize: 16, color: isDark ? "#fff" : "#333" },
+    modalItemText: { fontSize: 16, color: theme.text, },
     classDropdown: {
       flex: 1,
       flexDirection: "row",
@@ -719,9 +710,9 @@ function getStyles(theme: Theme) {
       borderWidth: 1,
       borderColor: isDark ? "#444" : "#ddd",
     },
-    dropdownText: { fontSize: 15, color: isDark ? "#fff" : "#495057" },
-    dropdownIcon: { fontSize: 14, color: "#6c757d" },
-    selectedText: { fontSize: 16, color: isDark ? "#fff" : "#333" },
+    dropdownText: { fontSize: 15, color:theme.text,},
+    dropdownIcon: { fontSize: 14, color:theme.text,},
+    selectedText: { fontSize: 16, color:theme.text, },
     selectAllRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -738,7 +729,7 @@ function getStyles(theme: Theme) {
       flex: 1,
       fontSize: 14,
       fontWeight: "600",
-      color: isDark ? "#A0B8D0" : "#445",
+      color: theme.text,
     },
     selectAllCount: {
       fontSize: 13,

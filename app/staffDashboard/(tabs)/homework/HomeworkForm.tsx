@@ -1,5 +1,13 @@
 import { ThemeContext } from "@/action/theme/ThemeContext";
 import { Theme } from "@/action/theme/themeReducer";
+import {
+  getPhoneSize,
+  getResponsiveFontSize,
+  getResponsivePadding,
+  scaleFont,
+  scaleH,
+  scaleW,
+} from "@/utils/responsivedesignsystem";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as DocumentPicker from "expo-document-picker";
@@ -14,7 +22,8 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { ToastService } from "react-native-toastier";
 import ModalDropdown from "./modaldropdown";
@@ -32,7 +41,7 @@ const HomeworkForm: React.FC<Props> = ({
   loading,
   submitText,
   onSubmit,
-  resetKey
+  resetKey,
 }) => {
   /* ---------------- STATE ---------------- */
   const themeState = useContext(ThemeContext);
@@ -41,15 +50,12 @@ const HomeworkForm: React.FC<Props> = ({
   const { theme } = themeState;
   const styles = getStyles(theme);
   const isDark = theme.mode === "dark";
+
   const [selectedClass, setSelectedClass] = useState<any>(
-    initialValues?.className
-      ? { name: initialValues.className }
-      : null
+    initialValues?.className ? { name: initialValues.className } : null
   );
   const [selectedSection, setSelectedSection] = useState<any>(
-    initialValues?.section
-      ? { name: initialValues.section }
-      : null
+    initialValues?.section ? { name: initialValues.section } : null
   );
   const [subject, setSubject] = useState(initialValues?.subject || "");
   const [title, setTitle] = useState(initialValues?.title || "");
@@ -64,7 +70,7 @@ const HomeworkForm: React.FC<Props> = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [classModal, setClassModal] = useState(false);
   const [sectionModal, setSectionModal] = useState(false);
-  //   const [resetKey, setResetKey] = useState(0);
+
   /* ---------------- HELPERS ---------------- */
   const validate = () => {
     if (!selectedClass) return "Select class";
@@ -76,13 +82,13 @@ const HomeworkForm: React.FC<Props> = ({
   };
 
   const submit = () => {
-
     const error = validate();
     if (error) {
       ToastService.show({
         type: "danger",
         message: error,
-        duration: 2500, contentContainerStyle: { flex: 1, }
+        duration: 2500,
+        contentContainerStyle: { flex: 1 },
       });
       return;
     }
@@ -110,8 +116,6 @@ const HomeworkForm: React.FC<Props> = ({
 
       const asset = result.assets[0];
 
-      // ✅ FIXED: Use URI as is. Android needs content:// and iOS needs file://
-      // DocumentPicker already provides the correct prefix.
       const normalizedFile = {
         uri: asset.uri,
         name: asset.name,
@@ -125,6 +129,7 @@ const HomeworkForm: React.FC<Props> = ({
       Alert.alert("Error", "Failed to pick file");
     }
   };
+
   useEffect(() => {
     if (!resetKey) return;
     setSelectedClass(null);
@@ -139,18 +144,24 @@ const HomeworkForm: React.FC<Props> = ({
   /* ---------------- UI ---------------- */
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: isDark ? "#111827" : "#F9FAFB" }}
+      style={{ flex: 1, backgroundColor: theme.background }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, padding: 16 }}
+        contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        bounces={false}
       >
-        <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.container}>
           {/* CLASS */}
-          <TouchableOpacity style={styles.dropdown} onPress={() => setClassModal(true)}>
-            <Text style={{ color: isDark ? "#F9FAFB" : "#111827" }}>{selectedClass?.value || "Select Class"}</Text>
+          <TouchableOpacity
+            style={styles.dropdown}
+            onPress={() => setClassModal(true)}
+          >
+            <Text style={styles.dropdownText}>
+              {selectedClass?.value || "Select Class"}
+            </Text>
           </TouchableOpacity>
 
           {/* SECTION */}
@@ -158,7 +169,9 @@ const HomeworkForm: React.FC<Props> = ({
             style={styles.dropdown}
             onPress={() => setSectionModal(true)}
           >
-            <Text style={{ color: isDark ? "#F9FAFB" : "#111827" }}>{selectedSection?.name || "Select Section"}</Text>
+            <Text style={styles.dropdownText}>
+              {selectedSection?.name || "Select Section"}
+            </Text>
           </TouchableOpacity>
 
           {/* SUBJECT */}
@@ -167,7 +180,7 @@ const HomeworkForm: React.FC<Props> = ({
             placeholder="Subject"
             value={subject}
             onChangeText={setSubject}
-            placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
+            placeholderTextColor={theme.textSecondary}
           />
 
           {/* TITLE */}
@@ -175,7 +188,7 @@ const HomeworkForm: React.FC<Props> = ({
             style={styles.input}
             placeholder="Homework Title"
             value={title}
-            placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
+            placeholderTextColor={theme.textSecondary}
             onChangeText={setTitle}
           />
 
@@ -184,8 +197,14 @@ const HomeworkForm: React.FC<Props> = ({
             style={styles.datePicker}
             onPress={() => setShowDatePicker(true)}
           >
-            <Text style={{ color: isDark ? "#F9FAFB" : "#111827" }}>Due Date: {moment(dateObj).format("YYYY-MM-DD")}</Text>
-            <Ionicons name="calendar-outline" size={18} style={{ color: isDark ? "#F9FAFB" : "#111827" }} />
+            <Text style={styles.dateText}>
+              Due Date: {moment(dateObj).format("YYYY-MM-DD")}
+            </Text>
+            <Ionicons
+              name="calendar-outline"
+              size={scaleFont(18)}
+              style={styles.dateIcon}
+            />
           </TouchableOpacity>
 
           {showDatePicker && (
@@ -200,15 +219,18 @@ const HomeworkForm: React.FC<Props> = ({
             />
           )}
 
+          {/* ATTACHMENT */}
           <TouchableOpacity onPress={uploadAttachment}>
             <Text style={styles.attachment}>
-              {attachment ? `Attached: ${attachment.name}` : "Upload Attachment"}
+              {attachment
+                ? `Attached: ${attachment.name}`
+                : "Upload Attachment"}
             </Text>
           </TouchableOpacity>
 
           {attachment && (
             <TouchableOpacity onPress={() => setAttachment(null)}>
-              <Text style={{ color: "red", marginBottom: 10 }}>
+              <Text style={styles.removeAttachment}>
                 Remove attachment
               </Text>
             </TouchableOpacity>
@@ -219,17 +241,14 @@ const HomeworkForm: React.FC<Props> = ({
             style={styles.textArea}
             placeholder="Homework details..."
             multiline
-            placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
+            placeholderTextColor={theme.textSecondary}
             value={description}
             onChangeText={setDescription}
           />
 
           {/* SUBMIT */}
           <TouchableOpacity
-            style={[
-              styles.button,
-              loading && styles.buttonDisabled
-            ]}
+            style={[styles.button, loading && styles.buttonDisabled]}
             disabled={loading}
             onPress={submit}
           >
@@ -275,7 +294,7 @@ const HomeworkForm: React.FC<Props> = ({
             }}
             onClose={() => setSectionModal(false)}
           />
-        </ScrollView>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -286,98 +305,126 @@ export default HomeworkForm;
 /* ---------------- STYLES ---------------- */
 function getStyles(theme: Theme) {
   const isDark = theme.mode === "dark";
+  const padding = getResponsivePadding();
+  const fonts = getResponsiveFontSize();
+  const phoneSize = getPhoneSize();
 
-  const colors = {
-    light: {
-      background: "#F9FAFB",
-      card: "#FFFFFF",
-      text: "#111827",
-      placeholder: "#6B7280",
-      border: "#E5E7EB",
-      inputBg: "#FFFFFF",
-      primary: "#2563eb",
-      danger: "#ef4444",
-    },
-    dark: {
-      background: "#111827",
-      card: "#1F2937",
-      text: "#F9FAFB",
-      placeholder: "#9CA3AF",
-      border: "#374151",
-      inputBg: "#1F2937",
-      primary: "#3B82F6",
-      danger: "#F87171",
-    },
+  const palette = {
+    inputBg: theme.background,
+    border: theme.border,
+    text: theme.text,
+    primary: theme.primary,
   };
 
-  const palette = isDark ? colors.dark : colors.light;
-
   return StyleSheet.create({
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: padding.md,
+      paddingVertical: scaleH(16),
+    },
+
     container: {
       padding: 0,
+    },
+
+    input: {
+      backgroundColor: palette.inputBg,
+      borderWidth: scaleW(1),
+      borderColor: palette.border,
+      borderRadius: scaleW(8),
+      padding: padding.md,
+      marginBottom: scaleH(12),
+      color: palette.text,
+      fontSize: fonts.body,
+    },
+
+    dropdown: {
+      backgroundColor: palette.inputBg,
+      borderWidth: scaleW(1),
+      borderColor: palette.border,
+      borderRadius: scaleW(8),
+      padding: padding.md,
+      marginBottom: scaleH(12),
+      minHeight: scaleH(48),
+      justifyContent: "center",
+    },
+
+    dropdownText: {
+      color: palette.text,
+      fontSize: fonts.body,
+      fontWeight: "500",
+    },
+
+    datePicker: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      backgroundColor: palette.inputBg,
+      borderWidth: scaleW(1),
+      borderColor: palette.border,
+      padding: padding.md,
+      borderRadius: scaleW(8),
+      marginBottom: scaleH(12),
+      minHeight: scaleH(48),
+    },
+
+    dateText: {
+      color: palette.text,
+      fontSize: fonts.body,
+      fontWeight: "500",
+      flex: 1,
+    },
+
+    dateIcon: {
+      color: palette.text,
+      marginLeft: padding.sm,
+    },
+
+    attachment: {
+      color: palette.primary,
+      marginBottom: scaleH(12),
+      fontSize: fonts.small,
+      fontWeight: "500",
+    },
+
+    removeAttachment: {
+      color: "#ef4444",
+      marginBottom: scaleH(12),
+      fontSize: fonts.small,
+      fontWeight: "500",
+    },
+
+    textArea: {
+      minHeight: scaleH(130),
+      backgroundColor: palette.inputBg,
+      borderWidth: scaleW(1),
+      borderColor: palette.border,
+      borderRadius: scaleW(8),
+      padding: padding.md,
+      color: palette.text,
+      fontSize: fonts.body,
+      marginBottom: scaleH(12),
+      textAlignVertical: "top",
+    },
+
+    button: {
+      backgroundColor: palette.primary,
+      padding: padding.md,
+      borderRadius: scaleW(8),
+      alignItems: "center",
+      marginTop: scaleH(16),
+      minHeight: scaleH(48),
+      justifyContent: "center",
     },
 
     buttonDisabled: {
       opacity: 0.6,
     },
 
-    input: {
-      backgroundColor: palette.inputBg,
-      borderWidth: 1,
-      borderColor: palette.border,
-      borderRadius: 8,
-      padding: 12,
-      marginBottom: 12,
-      color: palette.text,
-    },
-
-    dropdown: {
-      backgroundColor: palette.inputBg,
-      borderWidth: 1,
-      borderColor: palette.border,
-      borderRadius: 8,
-      padding: 14,
-      marginBottom: 12,
-    },
-
-    datePicker: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      backgroundColor: palette.inputBg,
-      borderWidth: 1,
-      borderColor: palette.border,
-      padding: 14,
-      borderRadius: 8,
-      marginBottom: 12,
-    },
-
-    attachment: {
-      color: palette.primary,
-      marginBottom: 12,
-    },
-
-    textArea: {
-      height: 130,
-      backgroundColor: palette.inputBg,
-      borderWidth: 1,
-      borderColor: palette.border,
-      borderRadius: 8,
-      padding: 12,
-      color: palette.text,
-    },
-
-    button: {
-      backgroundColor: palette.primary,
-      padding: 14,
-      borderRadius: 8,
-      alignItems: "center",
-      marginTop: 16,
-    },
-
     buttonText: {
       color: "#fff",
       fontWeight: "700",
+      fontSize: fonts.body,
     },
   });
 }
-

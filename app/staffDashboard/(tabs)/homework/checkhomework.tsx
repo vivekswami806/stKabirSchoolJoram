@@ -1,5 +1,6 @@
 // CheckHomework.tsx
 import { ThemeContext } from "@/action/theme/ThemeContext";
+import { red } from "@/action/theme/light";
 import { Theme } from "@/action/theme/themeReducer";
 import LeaveSkeleton from "@/app/adminDashboard/(tabs)/leave/LeaveSkeleton";
 import { API_BASE_URL } from "@/config";
@@ -232,13 +233,13 @@ const CheckHomework = () => {
         <Pressable
           style={[
             styles.actionBtn,
-            { backgroundColor: "#ef4444", opacity: deletingId === item.id ? 0.6 : 1 }
+            { backgroundColor: red[500], opacity: deletingId === item.id ? 0.6 : 1 }
           ]}
           onPress={() => deleteHomework(item.id)}
           disabled={deletingId === item.id}
         >
           {deletingId === item.id ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color= {theme.text} size="small" />
           ) : (
             <Text style={styles.actionText}>Delete</Text>
           )}
@@ -250,7 +251,7 @@ const CheckHomework = () => {
 
   /* ---------------- UI ---------------- */
   return (
-    <View style={{ flex: 1, backgroundColor: theme.mode === "dark" ? "#111827" : "#F9FAFB" }}>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <FlatList
         data={list.filter((i) =>
           (i.title ?? "").toLowerCase().includes(search.toLowerCase())
@@ -280,7 +281,7 @@ export default CheckHomework;
 
 /* ---------------- Styles ---------------- */
 function getStyles(theme: Theme) {
-  const isDark = theme.mode === "dark";
+
 
   return StyleSheet.create({
     center: {
@@ -291,40 +292,40 @@ function getStyles(theme: Theme) {
 
     emptyText: {
       fontSize: 16,
-      color: isDark ? "#9CA3AF" : "#6B7280",
+      color:theme.text,
     },
 
     card: {
-      backgroundColor: isDark ? "#1F2937" : "#FFFFFF",
+      backgroundColor: theme.card,
       padding: 16,
       borderRadius: 10,
       marginVertical: 8,
       borderWidth: 1,
-      borderColor: isDark ? "#374151" : "#E5E7EB",
+      borderColor: theme.border,
     },
 
     subject: {
       fontWeight: "bold",
       fontSize: 16,
-      color: isDark ? "#F9FAFB" : "#111827",
+      color: theme.text,
     },
 
     date: {
       fontSize: 12,
       marginVertical: 4,
-      color: isDark ? "#9CA3AF" : "#6B7280",
+      color: theme.text,
     },
 
     title: {
       fontSize: 15,
-      color: isDark ? "#E5E7EB" : "#111827",
+      color: theme.text,
     },
 
     attachment: {
       marginTop: 6,
       fontSize: 12,
       fontStyle: "italic",
-      color: isDark ? "#60A5FA" : "#4B5563",
+      color: theme.text,
     },
 
     buttonRow: {
@@ -341,7 +342,7 @@ function getStyles(theme: Theme) {
     },
 
     actionText: {
-      color: "#fff",
+      color: theme.text,
       fontWeight: "bold",
     },
   });

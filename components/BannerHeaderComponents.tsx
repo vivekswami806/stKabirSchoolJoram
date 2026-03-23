@@ -16,6 +16,7 @@ const bannerImages = [
     // require('../assets/bannerImage/banner9.jpg'),
     // require('../assets/bannerImage/banner10.jpg'),
   ];
+  
  export const BannerImage = () =>{
     const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
     useEffect(() => {
@@ -25,7 +26,6 @@ const bannerImages = [
       
         return () => clearInterval(interval); // cleanup on unmount
       }, []);
-    return(
-        <Image source={bannerImages[currentBannerIndex]} style={{width:120, height: 140, borderRadius:10}} />
-    )
+      return ( <Image source={bannerImages[currentBannerIndex]} style={{width:"100%", height: 160, borderRadius:10}} />);
+  
   }

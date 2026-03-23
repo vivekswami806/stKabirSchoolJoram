@@ -15,6 +15,13 @@ export interface Theme {
   text: string;
   textSecondary: string;
   border?: string;
+  cardBackground?: string;
+  inputBackGround?: string;
+  errorColor?: string;
+  buttonText?: string;
+  secondary?: string;
+  success?: string;
+  accent?: string;
 }
 
 export interface ThemeState {
