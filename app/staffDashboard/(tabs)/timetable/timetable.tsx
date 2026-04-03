@@ -61,7 +61,6 @@ export default function TimeTableScreen() {
           },
         }
       );
-      // console.log("---res|", response);
       
       const mappedData: TimetableItem[] = (response.data ?? [])
         .filter((item: any) => item.isActive)

@@ -1,6 +1,7 @@
 import { RootState } from "@/action/store";
 import { ThemeContext } from "@/action/theme/ThemeContext";
 import { Theme } from "@/action/theme/themeReducer";
+import { API_BASE_URL } from "@/config";
 import { getDeviceId } from "@/helper/getDeviceId";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -61,7 +62,7 @@ export default function TimeTableScreen() {
 
       const response = await axios.get(
         // `${API_BASE_URL}v2/timetable/entries/by-class-section`,
-        `https://sukedu.cloud/api/v2/timetable/entries/by-class-section?className=${userDetail.studentClass}&section=${userDetail.classSection}`,
+        `${API_BASE_URL}v2/timetable/entries/by-class-section?className=${userDetail.studentClass}&section=${userDetail.classSection}`,
         {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -70,7 +71,7 @@ export default function TimeTableScreen() {
             },
           }
       );
-      console.log("rrrr|", response);
+      // console.log("rrrr|", response);
       setData(response.data?.data || []);
  
     } catch (err: any) {

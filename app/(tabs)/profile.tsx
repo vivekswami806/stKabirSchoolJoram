@@ -1,7 +1,7 @@
 import { RootState } from "@/action/store";
 import { logout } from "@/action/student/userContext";
 import { ThemeContext } from "@/action/theme/ThemeContext";
-import { blue, green } from "@/action/theme/light";
+import { blue, green, red } from "@/action/theme/light";
 import CollapsibleCard from "@/components/CollapsibleCard";
 import { API_BASE_URL } from "@/config";
 import { getDeviceId } from "@/helper/getDeviceId";
@@ -77,7 +77,6 @@ export default function Profile() {
             "X-Device-ID": deviceId,
           },
         });
-        console.log("---profile Data|", data);
 
         if (storedRole !== "PARENT") {
           setIsPresentToday(data.status === "P");
@@ -404,14 +403,14 @@ const getStyles = (theme: any) => {
     },
 
     logoutButton: {
-      backgroundColor: theme.errorColor,
+      backgroundColor: red[100],
       borderRadius: scaleW(14),
       paddingVertical: scaleH(14),
       marginTop: scaleH(10),
     },
 
     logoutText: {
-      color: theme.buttonText,
+      color: theme.text,
       fontSize: fonts.body,
       fontWeight: "700",
       textAlign: "center",

@@ -227,7 +227,6 @@ export default function TeacherLeaveApprovalScreen() {
             : item
         )
       );
-      console.log("---res|", res);
 
       Alert.alert(
         "Success",

@@ -1,5 +1,6 @@
 import { ThemeContext } from '@/action/theme/ThemeContext';
 import { Theme } from '@/action/theme/themeReducer';
+import { Icons } from '@/appIcons/appIcons';
 import { BannerImage } from '@/components/BannerHeaderComponents';
 import TodayLectures from '@/components/TodayLectures';
 import { useRouter } from 'expo-router';
@@ -14,14 +15,21 @@ export default function AdminDashboard() {
   const { theme } = themeState;
   const styles = getStyles(theme);
   const menuItems = [
-    { icon: '🗓️', label: 'Attendance', color: '#3B82F6', bg: '#EFF6FF', route: '/adminDashboard/(tabs)/attendance/attendance' },
-    { icon: '👩‍🏫', label: 'Teachers Info', color: '#A855F7', bg: '#FAF5FF', route: '/adminDashboard/(tabs)/teacherinfo/mainscreen' },
-    { icon: '🏖️', label: 'Leave', color: '#10B981', bg: '#F0FDF4', route: '/adminDashboard/(tabs)/leave/TeacherLeaveApprovalScreen' },
-    { icon: '🕒', label: 'Time Table', color: '#6366F1', bg: '#EEF2FF', route: '/staffDashboard/(tabs)/timetable/timetable' },
-    { icon: '📚', label: 'Home Work', color: '#EAB308', bg: '#FEFCE8', route: '/staffDashboard/(tabs)/homework/homework' },
-    { icon: '👨‍🎓', label: 'Students Info', color: '#EC4899', bg: '#FDF2F8', route: '/adminDashboard/(tabs)/InfoStudent/parentscreen' },
-    { icon: '💬', label: 'Message', color: '#14B8A6', bg: '#F0FDFA', route: '/(tabs)/messages' },
-    { icon: '📢', label: 'Notice', color: '#22C55E', bg: '#F0FDF4', route: '/dashboard/(tabs)/notice' },
+    { icon: Icons.attendance, label: 'Attendance', color: '#3B82F6', bg: '#EFF6FF', route: '/adminDashboard/(tabs)/attendance/attendance' },
+
+    { icon: Icons.teacher, label: 'Teachers Info', color: '#A855F7', bg: '#FAF5FF', route: '/adminDashboard/(tabs)/teacherinfo/mainscreen' },
+
+    { icon: Icons.leave, label: 'Leave', color: '#10B981', bg: '#F0FDF4', route: '/adminDashboard/(tabs)/leave/TeacherLeaveApprovalScreen' },
+
+    { icon: Icons.timetable, label: 'Time Table', color: '#6366F1', bg: '#EEF2FF', route: '/staffDashboard/(tabs)/timetable/timetable' },
+
+    { icon: Icons.homework, label: 'Home Work', color: '#EAB308', bg: '#FEFCE8', route: '/staffDashboard/(tabs)/homework/homework' },
+
+    { icon: Icons.students, label: 'Students Info', color: '#EC4899', bg: '#FDF2F8', route: '/adminDashboard/(tabs)/InfoStudent/parentscreen' },
+
+    { icon: Icons.message, label: 'Message', color: '#14B8A6', bg: '#F0FDFA', route: '/(tabs)/messages' },
+
+    { icon: Icons.notice, label: 'Notice', color: '#22C55E', bg: '#F0FDF4', route: '/dashboard/(tabs)/notice' },
   ];
 
   const handleMenuPress = (route: any) => {
@@ -39,18 +47,23 @@ export default function AdminDashboard() {
 
       {/* Menu Grid */}
       <View style={styles.menuGrid}>
-        {menuItems.map((item) => (
-          <TouchableOpacity
-            key={item.label} // safer than index
-            style={styles.menuItem}
-            onPress={() => handleMenuPress(item.route)}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: item.bg }]}>
-              <Text style={{ fontSize: 28 }}>{item.icon}</Text>
-            </View>
-            <Text style={styles.menuLabel}>{item.label}</Text>
-          </TouchableOpacity>
-        ))}
+        {menuItems.map((item) => {
+          const IconComponent = item.icon;
+
+          return (
+            <TouchableOpacity
+              key={item.label}
+              style={styles.menuItem}
+              onPress={() => handleMenuPress(item.route)}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: item.bg }]}>
+                <IconComponent size={26} color={item.color} />
+              </View>
+
+              <Text style={styles.menuLabel}>{item.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Today Lectures Section */}
@@ -84,43 +97,11 @@ function getStyles(theme: Theme) {
     },
     viewAll: {
       fontSize: 14,
-      color: !isDark
-        ? '#000104'
-        : '#E9EFFC',
-    },
-    searchContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: !isDark
-        ? '#000104'
-        : '#E9EFFC',
-      borderRadius: 12,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      marginBottom: 20,
-      shadowColor: isDark
-        ? '#000104'
-        : '#E9EFFC',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 2,
-    },
-    searchIcon: {
-      marginRight: 8,
-    },
-    searchInput: {
-      flex: 1,
-      fontSize: 15,
-      color: !isDark
-        ? '#000104'
-        : '#E9EFFC',
+      color: theme.text,
     },
     bannerCard: {
       flexDirection: 'row',
-      backgroundColor: '#FED7AA',
-      // ? '#000104' 
-      // :  '#FED7AA',
+      backgroundColor: theme.background,
       marginHorizontal: 20,
       marginBottom: 24,
       borderRadius: 16,
@@ -142,9 +123,7 @@ function getStyles(theme: Theme) {
       marginBottom: 4,
     },
     bannerButton: {
-      backgroundColor: isDark
-        ? '#000104'
-        : '#E9EFFC',
+      backgroundColor: theme.background,
       paddingHorizontal: 20,
       paddingVertical: 10,
       borderRadius: 8,
@@ -152,9 +131,7 @@ function getStyles(theme: Theme) {
       alignSelf: 'flex-start',
     },
     bannerButtonText: {
-      color: !isDark
-        ? '#000104'
-        : '#E9EFFC',
+      color: theme.text,
       fontSize: 14,
       fontWeight: '600',
     },
@@ -167,9 +144,7 @@ function getStyles(theme: Theme) {
       width: 80,
       height: 80,
       borderRadius: 40,
-      backgroundColor: !isDark
-        ? '#000104'
-        : '#E9EFFC',
+      backgroundColor: theme.text,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -180,12 +155,12 @@ function getStyles(theme: Theme) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       paddingHorizontal: 20,
-      marginBottom: 24,
+      marginBottom: 0,
     },
     menuItem: {
       width: '25%',
       alignItems: 'center',
-      marginBottom: 24,
+      marginBottom: 20,
     },
     iconContainer: {
       width: 64,
@@ -197,9 +172,7 @@ function getStyles(theme: Theme) {
     },
     menuLabel: {
       fontSize: 12,
-      color: !isDark
-        ? '#000104'
-        : '#E9EFFC',
+      color: theme.text,
       textAlign: 'center',
       fontWeight: '500',
     },
@@ -208,25 +181,21 @@ function getStyles(theme: Theme) {
       justifyContent: 'space-between',
       paddingHorizontal: 20,
       alignItems: 'center',
-      marginBottom: 16,
+      marginBottom: 6,
     },
     lecturesTitle: {
       fontSize: 18,
       fontWeight: '700',
 
-      color: !isDark
-        ? '#000104'
-        : '#E9EFFC',
+      color: theme.text,
     },
     viewAllText: {
       fontSize: 14,
-      color: !isDark
-        ? '#000104'
-        : '#E9EFFC',
+      color: theme.text,
       fontWeight: '500',
     },
     lectureCard: {
-      backgroundColor: !isDark ? '#F4F6FB' : '#020202',
+      backgroundColor: theme.background,
       borderRadius: 14,
       padding: 16,
       marginRight: 14,
@@ -241,7 +210,7 @@ function getStyles(theme: Theme) {
     lectureSubject: {
       fontSize: 16,
       fontWeight: '600',
-      color: !isDark ? '#000104' : '#FFFFFF',
+      color: theme.text,
       marginBottom: 14,
       // lineHeight: 10,
       height: 70
@@ -256,7 +225,7 @@ function getStyles(theme: Theme) {
     timePill: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: !isDark ? '#E6E9F0' : '#2E2E2E',
+      backgroundColor: theme.background,
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: 20,
@@ -264,7 +233,7 @@ function getStyles(theme: Theme) {
 
     lectureTime: {
       fontSize: 12,
-      color: isDark ? '#E6E9F0' : '#2E2E2E',
+      color: theme.text,
       marginLeft: 6,
       fontWeight: 600
     },
@@ -274,7 +243,7 @@ function getStyles(theme: Theme) {
     },
     eventsSection: {
       paddingHorizontal: 20,
-      marginBottom: 24,
+      marginBottom: 14,
     },
   });
   return styles;

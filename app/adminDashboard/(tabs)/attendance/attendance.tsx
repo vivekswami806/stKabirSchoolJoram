@@ -120,7 +120,7 @@ export default function AttendanceScreen() {
           },
         }
       );
-         console.log("---res Attandnnce  |", response.data[5])
+        //  console.log("---res Attandnnce  |", response.data[5])
          const newPendingChanges = new Map();
        const studentsData: Person[] = response.data.map((s: any) => {
         const status: "A" | "P" = s.marked ? (s.status as "A" | "P") : "A";
@@ -377,7 +377,7 @@ export default function AttendanceScreen() {
               <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
               <Text
                 style={{
-                  color: "#000",
+                  color: theme.buttonText,
                   fontWeight: "600",
                   marginLeft: 6,
                 }}
@@ -388,7 +388,6 @@ export default function AttendanceScreen() {
               {pendingCount > 0 && (
                 <View
                   style={{
-                    backgroundColor: "#000",
                     borderRadius: 10,
                     marginLeft: 6,
                     minWidth: 20,
@@ -396,7 +395,7 @@ export default function AttendanceScreen() {
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ color: "#fff", fontSize: 12, fontWeight: "bold" }}>
+                  <Text style={{ color: theme.buttonText, fontSize: 12, fontWeight: "bold" }}>
                     {pendingCount}
                   </Text>
                 </View>

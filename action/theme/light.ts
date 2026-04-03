@@ -1,73 +1,77 @@
 // src/theme/light.ts
-// src/theme/light.ts
 import { Theme } from "./themeReducer";
 
 export const lightTheme: Theme = {
-    mode: "light",       // TypeScript now knows this is "light"
-    background: "#FEFCE8",
+    mode: "light",
+    background: "#F4FBF7",        // very light green tint (fresh & modern)
     cardBackground: "#FFFFFF",
-    buttonText: "#fff",
+    buttonText: "#FFFFFF",
     card: "#FFFFFF",
-    text: "#111827",
-    textSecondary: "#6B7280",
-    primary: "#EC4899",
-    inputBackGround: "#F472B6",
-    errorColor: "#e74c3c",
-    secondary: "#3B82F6",
-    success: "#10B981",
-    accent: "#8B5CF6",
-    border: "#E5E7EB",
+    text: "#356F50",              // dark neutral for readability
+    textSecondary: "#356F50",
+
+    primary: "#356F50",           // your green (main brand)
+    secondary: "#1B2A6B",         // navy (from logo)
+    accent: "#FFD700",            // gold highlight
+
+    inputBackGround: "#E6F4EC",   // soft green input
+    success: "#2E8B57",           // success green
+    errorColor: "#DC143C",        // red
+
+    border: "#D1E7DD",            // light green border
 };
 
 export const yellow = {
-    50: "#FEFCE8",
-    100: "#FEF9C3",
-    200: "#FEF08A",
-    400: "#FACC15",
-    500: "#EAB308",
-    600: "#CA8A04",
-    700: "#A16207",
-    900: "#713F12",
-  };
+    50: "#FFF8DC",
+    100: "#FAE7B5",
+    200: "#F5D98E",
+    400: "#FFD700", // gold
+    500: "#FFC107",
+    600: "#E0A800",
+    700: "#C69500",
+    900: "#8B7500",
+};
 
-  export const blue = {
-    50: "#EFF6FF",
-    100: "#DBEAFE",
-    200: "#BFDBFE",
-    400: "#60A5FA",
-    500: "#3B82F6",
-    600: "#2563EB",
-    700: "#1D4ED8",
-    900: "#1E3A8A",
-  };
-  export  const pink = {
-    50: "#FDF2F8",
-    100: "#FCE7F3",
-    200: "#FBCFE8",
-    400: "#F472B6",
-    500: "#EC4899",
-    600: "#DB2777",
-    700: "#BE185D",
-    900: "#831843",
-  };
-  export const green = {
+export const blue = {
+    50: "#E6ECFF",
+    100: "#C7D2FE",
+    200: "#A5B4FC",
+    400: "#4C6EF5",
+    500: "#1B2A6B", // navy (main)
+    600: "#162454",
+    700: "#0F1B3D",
+    900: "#0A1128",
+};
+
+export const pink = {
+    50: "#FFF1F2",
+    100: "#FFE4E6",
+    200: "#FECDD3",
+    400: "#F87171",
+    500: "#DC143C", // crimson (flame red)
+    600: "#B91C1C",
+    700: "#991B1B",
+    900: "#7F1D1D",
+};
+
+export const green = {
     50: "#ECFDF5",
     100: "#D1FAE5",
     200: "#A7F3D0",
     400: "#34D399",
-    500: "#10B981",
-    600: "#059669",
-    700: "#047857",
+    500: "#228B22", // leaf green
+    600: "#1F7A1F",
+    700: "#1F5E3B", // dark green (center)
     900: "#064E3B",
-  };
-  export const red = {
+};
+
+export const red = {
     50: "#FEF2F2",
     100: "#FEE2E2",
     200: "#FECACA",
     400: "#F87171",
-    500: "#EF4444",
-    600: "#DC2626",
-    700: "#B91C1C",
-    900: "#7F1D1D",
-  };
-
+    500: "#DC143C", // flame red
+    600: "#B22222",
+    700: "#8B0000",
+    900: "#5A0000",
+};

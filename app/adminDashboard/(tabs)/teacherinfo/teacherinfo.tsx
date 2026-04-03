@@ -101,7 +101,7 @@ export default function TeacherInfo({ onSelectStudent }: Props) {
             <Ionicons
               name="arrow-back"
               size={26}
-              color={theme.background}
+              color={theme.text}
             />
           </TouchableOpacity>
           <Text style={styles.headerText}>Staff Details</Text>

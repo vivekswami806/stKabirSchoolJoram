@@ -303,7 +303,7 @@ export default function AddNoticeScreen() {
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.button, !isFormValid && { opacity: 0.5 }]} disabled={!isFormValid} onPress={submitNotice}>
+      <TouchableOpacity style={[styles.button, !isFormValid && { opacity: 0.8 }]} disabled={!isFormValid} onPress={submitNotice}>
         <Text style={styles.buttonText}>{loading ? "Submitting..." : "Add Notice"}</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -314,12 +314,11 @@ export default function AddNoticeScreen() {
 /* ================= STYLES ================= */
 
 function getStyles(theme: Theme) {
-  const isDark = theme.mode === "dark";
   return StyleSheet.create({
     container: {
       flex: 1,
       paddingTop: Platform.OS === "ios" ? 60 : 50,
-      backgroundColor: isDark ? "#0B1220" : "#FFF",
+      backgroundColor: theme.background,
       paddingHorizontal: 20
     },
     headerRow: {
@@ -334,47 +333,47 @@ function getStyles(theme: Theme) {
 
     backButton: {
       width: 40,
-      color: isDark ? "#E9EFFC" : "#000104",
+      color: theme.text,
     },
     headerText: {
       fontSize: 20,
       fontWeight: "600",
-      color: isDark ? "#E9EFFC" : "#000104",
+      color:  theme.text,
     },
     label: {
       fontSize: 16,
       fontWeight: "600",
       marginBottom: 8,
-      color: isDark ? "#E5E7EB" : "#000",
+      color: theme.text,
     },
     input: {
       borderWidth: 1,
-      borderColor: "#DDD",
+      borderColor: theme.border,
       borderRadius: 8,
       padding: 12,
       marginBottom: 16,
-      color: isDark ? "#FFF" : "#000",
+      color:  theme.text,
     },
     dateInput: {
       borderWidth: 1,
-      borderColor: "#DDD",
+      borderColor: theme.border,
       borderRadius: 8,
       padding: 14,
       marginBottom: 24,
       justifyContent: "center",
     },
     dateText: {
-      color: "#555",
+      color:  theme.text,
       fontSize: 15,
     },
     button: {
-      backgroundColor:  "#4C8EF7",
+      backgroundColor: "#228B22",
       padding: 14,
       borderRadius: 8,
       alignItems: "center",
     },
     buttonText: {
-      color: "#FFF",
+      color:theme.text,
       fontWeight: "700",
       fontSize: 16,
     },

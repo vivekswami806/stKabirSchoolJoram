@@ -1,4 +1,5 @@
 import { ThemeContext } from "@/action/theme/ThemeContext";
+import { schoolMoto, schoolMoto2, schoolName } from "@/appIcons/schoolNameAndMoto";
 import { getContainerWidth, getDeviceType, getPhoneSize, getResponsiveFontSize, getResponsiveGap, getResponsivePadding, scaleFont, scaleH, scaleW } from "@/utils/responsivedesignsystem";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -140,8 +141,9 @@ export default function LoginScreen() {
                 resizeMode="contain"
               />
             </View>
-            <Text style={styles.institutionName}>Loyola School Harnaut</Text>
-            <Text style={styles.institutionTagline}>Truth Love & Service</Text>
+            <Text style={styles.institutionName}>{schoolName}</Text>
+          <Text style={styles.institutionTagline}>{schoolMoto}</Text>
+          <Text style={styles.institutionTagline}>{schoolMoto2}</Text>
           </Animated.View>
         </View>
 
@@ -156,10 +158,10 @@ export default function LoginScreen() {
           ]}
         >
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>Welcome</Text>
+            {/* <Text style={styles.welcomeTitle}>Welcome</Text>
             <Text style={styles.welcomeSubtitle}>
               Please select your portal to continue
-            </Text>
+            </Text> */}
           </View>
 
           <View style={styles.rolesContainer}>
@@ -262,10 +264,11 @@ const getStyles = (theme: any) => {
       marginBottom: scaleH(4),
     },
     institutionTagline: {
-      fontSize: fontSizes.caption,
+      fontSize: fontSizes.h3,
       color: theme.textSecondary,
       fontWeight: "500",
       marginTop: scaleH(4),
+      // fontSize: fontSizes.h2,
     },
 
     // ===== MAIN CONTENT =====

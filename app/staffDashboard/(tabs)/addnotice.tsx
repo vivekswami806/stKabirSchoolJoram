@@ -160,7 +160,7 @@ function getStyles(theme: Theme) {
     container: {
       flex: 1,
       paddingTop: Platform.OS === "ios" ? 60 : 50,
-      backgroundColor: isDark ? "#0B1220" : "#FFF",
+      backgroundColor: theme.background,
       paddingHorizontal: 20
     },
     headerRow: {

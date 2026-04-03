@@ -151,7 +151,6 @@ export default function TeacherLeaveApprovalScreen() {
             new Date(b.date.split(" → ")[0]).getTime() -
             new Date(a.date.split(" → ")[0]).getTime()
         );
-        console.log("--- setLeaveData|",normalized );
         setLeaveData(normalized);
       } catch {
         setError("Failed to load leave requests");
@@ -270,14 +269,14 @@ export default function TeacherLeaveApprovalScreen() {
             <Ionicons
               name="people"
               size={24}
-              color={leaveMode === "PARENT" ? "#3B82F6" : "#fff"}
+              color={leaveMode === "PARENT" ? "#3B82F6" : theme.textSecondary}
             />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setLeaveMode("STAFF")}>
             <Ionicons
               name="school"
               size={24}
-              color={leaveMode === "STAFF" ? "#3B82F6" : "#fff"}
+              color={leaveMode === "STAFF" ? "#3B82F6" : theme.textSecondary}
             />
           </TouchableOpacity>
         </View>
@@ -318,7 +317,7 @@ export default function TeacherLeaveApprovalScreen() {
           <Ionicons
             name="document-text-outline"
             size={80}
-            color={isDark ? "#6B7280" : "#D1D5DB"}
+            color={theme.background}
             style={styles.emptyIcon}
           />
           <Text style={styles.emptyTitle}>No Leave Requests</Text>
@@ -376,14 +375,14 @@ function getStyles(theme: Theme) {
   return StyleSheet.create({
     safeContainer: {
       flex: 1,
-      backgroundColor: isDark ? "#0F1115" : "#F5F7FA",
+      backgroundColor: theme.background,
     },
     container: {
       flex: 1,
-      backgroundColor: isDark ? "#0F1115" : "#F5F7FA",
+      backgroundColor: theme.background,
     },
     backButton:{
-      color: !isDark ? "#0F1115" : "#F5F7FA",
+      color: theme.text,
     },
 
     /* ================= HEADER ================= */
@@ -396,7 +395,7 @@ function getStyles(theme: Theme) {
       marginBottom: 8,
       // backgroundColor: isDark ? "#1C28" : "#FFFFFF",
       borderBottomWidth: 1,
-      borderBottomColor: isDark ? "#2A2E3B" : "#E0E4EA",
+      borderBottomColor: theme.border,
     },
     headerBtn: {
       padding: 8,
@@ -408,11 +407,11 @@ function getStyles(theme: Theme) {
       textAlign: "center",
       fontSize: 20,
       fontWeight: "700",
-      color: isDark ? "#F0F0F5" : "#111827",
+      color:theme.text,
       letterSpacing: -0.3,
     },
     headerIcon: {
-      color: isDark ? "#fff" : "#4B5563",
+      color: theme.text,
     },
     toggleContainer: {
       flexDirection: "row",
@@ -426,7 +425,7 @@ function getStyles(theme: Theme) {
       flexDirection: "row",
       padding: 16,
       gap: 12,
-      backgroundColor: isDark ? "#15171F" : "#E9F0FF",
+      backgroundColor: theme.background,
       alignItems: "center",
       borderRadius: 12,
       marginHorizontal: 16,
@@ -439,10 +438,10 @@ function getStyles(theme: Theme) {
       alignItems: "center",
       paddingVertical: 12,
       paddingHorizontal: 14,
-      backgroundColor: isDark ? "#1F2230" : "#FFFFFF",
+      backgroundColor: theme.background,
       borderRadius: 10,
       borderWidth: 1,
-      borderColor: isDark ? "#2C2F3C" : "#CBD5E1",
+      borderColor: theme.border,
     },
     dropdownText: {
       fontSize: 15,

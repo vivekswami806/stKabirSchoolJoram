@@ -266,11 +266,11 @@ function getStyles(theme: Theme) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: isDark ? theme.background : '#F9FAFB',
+      backgroundColor: theme.background,
       paddingTop: Platform.OS === 'ios' ? 40 : 30,
     },
     icon: {
-      color: isDark ? '#E9EFFC' : '#111827',
+      color: theme.text,
     },
     header: {
       flexDirection: 'row',
@@ -278,14 +278,14 @@ function getStyles(theme: Theme) {
       alignItems: 'center',
       paddingHorizontal: 16,
       paddingVertical: 16,
-      backgroundColor: isDark ? '#111827' : '#FFFFFF',
+      backgroundColor: theme.background,
       borderBottomWidth: 1,
-      borderBottomColor: isDark ? '#1F2937' : '#E5E7EB',
+      borderBottomColor:theme.background,
     },
     headerTitle: {
       fontSize: 20,
       fontWeight: '700',
-      color: isDark ? '#E9EFFC' : '#111827',
+      color:theme.text,
     },
     monthHeader: {
       fontSize: 14,

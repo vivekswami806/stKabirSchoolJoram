@@ -369,7 +369,7 @@ function getStyles(theme: Theme) {
 
     greetingText: {
       fontSize: 13,
-      color: theme.secondary,
+      color: theme.text,
       fontWeight: '600',
       letterSpacing: 0.5,
     },

@@ -43,8 +43,8 @@ export const fetchAllFees = async (
 
     return response.data;
   } catch (error:any) {
-    console.error("Error fetching fees:", error.message);
-    throw error;
+    // console.error("Error fetching fees:", error.message);
+    // throw error;
   }
 };
 
