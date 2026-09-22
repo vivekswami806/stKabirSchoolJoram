@@ -8,7 +8,7 @@ export const getMimeTypeFromBase64 = (base64: string) => {
   
 
   export const getBase64ImageUri = (base64?: string) => {
-    if (!base64) return null;
+    if (!base64) return "";
   
     const cleaned = base64.replace(/\s/g, '');
     const mime = getMimeTypeFromBase64(cleaned);

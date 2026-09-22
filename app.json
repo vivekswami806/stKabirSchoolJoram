@@ -1,30 +1,30 @@
 {
   "expo": {
-    "name": "DEHLI PUBLIC SCHOOL",
-    "slug": "loyola-school-harnaut",
-    "version": "1.1.1",
+    "name": "ST KABIR SEMINARY JORAM",
+    "slug": "st-kabir-seminary-joram",
+    "version": "1.1.8",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": [
-      "loyola-school"
+      "krinexiya"
     ],
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    // "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.harnautloyola.portal",
+      "bundleIdentifier": "com.krinexiya.stkabirseminaryjoram",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.harnautloyola.portal",
-      "versionCode": 1,
+      "package": "com.krinexiya.stkabirseminaryjoram",
+      "versionCode": 15,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#E6F4FE"
       },
-      "edgeToEdgeEnabled": true,
+      // "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -46,7 +46,8 @@
         }
       ],
       "expo-sqlite",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
@@ -54,9 +55,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "e07154a6-0ad3-48b2-893f-5eca14957e88"
+        "projectId": "8bcb7fed-e504-43ad-a591-727e9308d02c"
       }
     },
-    "owner": "loyola-school"
+    "owner": "st-kabir-seminary-joram"
   }
 }

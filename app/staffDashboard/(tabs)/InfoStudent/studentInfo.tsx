@@ -9,7 +9,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { Buffer } from "buffer";
 import { useRouter } from "expo-router";
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   FlatList,
   Platform,
@@ -94,7 +94,7 @@ export default function StudentInfo({ className, onSelectStudent }: Props) {
             color={theme.mode === "dark" ? "#E9EFFC" : "#000"}
           />
         </TouchableOpacity>
-        <Text style={styles.headerText}>Class: {userDetail?.staffClass}</Text>
+        <Text style={styles.headerText}>Class: {userDetail?.staffClass}-{userDetail?.staffSection}</Text>
       </View>
 
       {/* Student List */}

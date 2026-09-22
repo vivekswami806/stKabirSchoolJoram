@@ -94,7 +94,7 @@ export default function TodayLectures() {
           "X-Device-ID": await getDeviceId(),
         },
       });
-      
+      // console.log("---Res|v2/", url, response.data);
       const mappedData: Lecture[] = response.data.map(
         (item: any, index: number) => ({
           id: item.periodNumber ?? index,
@@ -113,6 +113,8 @@ export default function TodayLectures() {
   
       return mappedData;
     } catch (err) {
+      // console.log("--err|", err);
+      
       if (retryCount < MAX_RETRIES) {
         setRetryCount(prev => prev + 1);
     
@@ -154,7 +156,7 @@ export default function TodayLectures() {
   }
 
   if (error) return <Text style={styles.errorText}>Unable to load timetable</Text>;
-  if (lectures.length === 0) return <Text style={styles.emptyText}>No classes today 🎉</Text>;
+  if (lectures.length === 0) return <Text style={styles.emptyText}>No classes today </Text>;
 
   return (
     <FlatList

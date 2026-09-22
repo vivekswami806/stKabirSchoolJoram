@@ -1,4 +1,11 @@
 import { ThemeContext } from '@/action/theme/ThemeContext';
+import {
+  getPhoneSize,
+  getResponsiveFontSize,
+  scaleFont,
+  scaleH,
+  scaleW
+} from '@/utils/responsivedesignsystem';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useContext } from 'react';
@@ -15,6 +22,8 @@ export default function CustomTabBar({ state, descriptors, navigation }: any) {
   const themeState = useContext(ThemeContext);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const phoneSize = getPhoneSize();
+  const fonts = getResponsiveFontSize();
 
   if (!themeState) return null;
 
@@ -44,7 +53,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: any) {
         styles.container,
         {
           width,
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 12,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : scaleH(12),
         },
       ]}
     >
@@ -55,14 +64,14 @@ export default function CustomTabBar({ state, descriptors, navigation }: any) {
             width: width * 0.92,
             backgroundColor: theme.background,
             borderColor: theme.background,
+            height: scaleH(65),
           },
         ]}
       >
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
-          const label =
-            options.title ?? route.name;
+          const label = options.title ?? route.name;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -87,18 +96,28 @@ export default function CustomTabBar({ state, descriptors, navigation }: any) {
                 <View style={styles.activeContainer}>
                   <LinearGradient
                     colors={[theme.primary, theme.primary]}
-                    style={styles.gradientIcon}
+                    style={[
+                      styles.gradientIcon,
+                      {
+                        width: scaleW(40),
+                        height: scaleW(40),
+                        borderRadius: scaleW(20),
+                      },
+                    ]}
                   >
                     <Ionicons
                       name={getIcon(route.name, true) as any}
-                      size={20}
+                      size={scaleFont(20)}
                       color="#fff"
                     />
                   </LinearGradient>
                   <Text
                     style={[
                       styles.activeLabel,
-                      { color: theme.text },
+                      {
+                        color: theme.text,
+                        fontSize: fonts.tiny,
+                      },
                     ]}
                   >
                     {label}
@@ -108,16 +127,15 @@ export default function CustomTabBar({ state, descriptors, navigation }: any) {
                 <View style={styles.inactiveContainer}>
                   <Ionicons
                     name={getIcon(route.name, false) as any}
-                    size={22}
+                    size={scaleFont(22)}
                     color={isDark ? '#9CA3AF' : '#6B7280'}
                   />
                   <Text
                     style={[
                       styles.inactiveLabel,
                       {
-                        color: isDark
-                          ? '#9CA3AF'
-                          : '#6B7280',
+                        color: isDark ? '#9CA3AF' : '#6B7280',
+                        fontSize: fonts.tiny,
                       },
                     ]}
                   >
@@ -140,55 +158,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'transparent',
   },
+
   tabBarContainer: {
     flexDirection: 'row',
-    height: 65,
-    borderRadius: 35,
+    borderRadius: scaleW(35),
     justifyContent: 'space-around',
     alignItems: 'center',
     borderWidth: 1,
-
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: scaleH(10) },
     shadowOpacity: 0.12,
-    shadowRadius: 15,
+    shadowRadius: scaleW(15),
     elevation: 10,
   },
+
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   activeContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   gradientIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
-
+    marginBottom: scaleH(4),
     shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: scaleH(4) },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: scaleW(8),
   },
+
   activeLabel: {
-    fontSize: 11,
     fontWeight: '700',
     textTransform: 'capitalize',
   },
+
   inactiveContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   inactiveLabel: {
-    fontSize: 10,
     fontWeight: '500',
-    marginTop: 4,
+    marginTop: scaleH(4),
     textTransform: 'capitalize',
   },
 });

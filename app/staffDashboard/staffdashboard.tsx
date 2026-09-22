@@ -1,16 +1,28 @@
+import { RootState } from '@/action/store';
 import { ThemeContext } from '@/action/theme/ThemeContext';
 import { Theme } from '@/action/theme/themeReducer';
 import { Icons } from '@/appIcons/appIcons';
 import { BannerImage } from '@/components/BannerHeaderComponents';
 import TodayLectures from '@/components/TodayLectures';
 import { useRouter } from 'expo-router';
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSelector } from 'react-redux';
 import Profile from '../dashboard/HeaderBar';
 
 export default function StaffDashboard() {
   const router = useRouter();
   const themeState = useContext(ThemeContext);
+  const userState = useSelector((state: RootState) => state.user);
+
+  const forcePasswordChange = userState?.forcePasswordChange;
+
+  useEffect(() => {    
+    if (forcePasswordChange) {
+      router.replace('/staffDashboard/resetstaffpassword');
+    }
+  }, [forcePasswordChange]);
+  
   if (!themeState) return null;
   const { theme } = themeState;
   const styles = getStyles(theme);
@@ -73,6 +85,7 @@ export default function StaffDashboard() {
           <TouchableOpacity onPress={() => { router.replace('/staffDashboard/(tabs)/timetable/timetable') }}>
             <Text style={styles.viewAllText} >View all</Text>
           </TouchableOpacity>
+            {/* <Button title="Notification" onPress={triggerTestNotification} /> */}
         </View>
         <TodayLectures />
       </View>
@@ -97,7 +110,7 @@ function getStyles(theme: Theme) {
       flexDirection: 'row',
       backgroundColor: theme.background,
       marginHorizontal: 20,
-      marginBottom: 24,
+      marginBottom: 12,
       borderRadius: 16,
       padding: 0,
       justifyContent: 'space-between',
@@ -114,7 +127,7 @@ function getStyles(theme: Theme) {
       color: isDark
         ? '#000104'
         : '#000104',
-      marginBottom: 4,
+      marginBottom: 2,
     },
     bannerButton: {
       backgroundColor: theme.background,

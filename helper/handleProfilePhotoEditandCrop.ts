@@ -51,3 +51,27 @@ export const handleEditPhoto = async () => {
 
   // call your API here
 };
+
+export const compressImage = async (imageUri: string) => {
+  try {
+    const result = await ImageManipulator.manipulateAsync(
+      imageUri,
+      [
+        {
+          resize: {
+            width: 800, // Resize width (maintains aspect ratio)
+          },
+        },
+      ],
+      {
+        compress: 0.6, // 0 to 1 (lower = more compression)
+        format: ImageManipulator.SaveFormat.JPEG,
+      }
+    );
+
+    return result.uri;
+  } catch (error) {
+    console.log("Compression Error:", error);
+    return imageUri;
+  }
+};

@@ -9,6 +9,7 @@ export const API_CHAT_URL =
 // export const API_CHAT_URL = "http://192.168.1.93:"
 
 export const classes = [
+  // { label: "Class Pnc", value: "pnc" },
   { label: "Class Nur", value: "nur" },
   { label: "Class LKG", value: "lkg" },
   { label: "Class UKG", value: "ukg" },

@@ -4,7 +4,7 @@ import { Theme } from "@/action/theme/themeReducer";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Image,
@@ -336,7 +336,7 @@ function getStyles(theme: Theme) {
       alignItems: 'center',
       paddingHorizontal: 24,
       paddingTop: Platform.OS === 'ios' ? 40 : 50,
-      paddingBottom: 14,
+      paddingBottom: 4,
       backgroundColor: 'transparent',
     },
 

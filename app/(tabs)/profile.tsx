@@ -85,7 +85,7 @@ export default function Profile() {
         }
       } catch (err) {
         setIsPresentToday(false);
-        console.log("--- err|", err);
+        // console.log("--- err|", err);
       }
     };
 
@@ -297,6 +297,17 @@ export default function Profile() {
         )}
 
         {/* ================= ACTIONS ================= */}
+
+        {isParent  && (
+          <TouchableOpacity
+            style={styles.resetPassword}
+            onPress={() =>
+              router.replace("/(auth)/SelectChild")
+            }
+          >
+            <Text style={styles.resetText}>Switch Children</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>

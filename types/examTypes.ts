@@ -437,11 +437,14 @@ export interface SubjectMarks {
     code: string;
     details?: Record<string, any>;
   }
+
+  
   
   // ============================================================================
   // Export all types
   // ============================================================================
   
   export type {
-    ExamScheduleItem as IExamScheduleItem, ResultsResponse as IResultsResponse, StudentResult as IStudentResult, SubjectMarks as ISubjectMarks
+  ExamScheduleItem as IExamScheduleItem, ResultsResponse as IResultsResponse, StudentResult as IStudentResult, SubjectMarks as ISubjectMarks
 };
+

@@ -1,23 +1,54 @@
+// import { Theme } from "./themeReducer";
+
+// export const darkTheme: Theme = {
+//     mode: "dark",
+  
+//     // Backgrounds
+//     background: "#0F172A",        // deep slate (NOT pure black)
+//     cardBackground: "#1E293B",
+//     card: "#1E293B",
+  
+//     // Text
+//     text: "#F9FAFB",
+//     textSecondary: "#94A3B8",
+  
+//     // Brand Colors (same family as light)
+//     primary: "#F472B6",          // softer pink for dark mode
+//     secondary: "#60A5FA",        // lighter blue
+//     accent: "#A78BFA",           // soft violet
+//     success: "#34D399",
+  
+//     // UI Elements
+//     buttonText: "#FFFFFF",
+//     inputBackGround: "#334155",
+//     border: "#334155",
+//     errorColor: "#F87171",
+//   };
+
+// src/theme/light.ts
 import { Theme } from "./themeReducer";
 
 export const darkTheme: Theme = {
     mode: "light",
-    background: "#F4FBF7",        // very light green tint (fresh & modern)
+
+    background:  "#FFEDD5"       ,// "#F5F7FF",          // softer than your current blue
     cardBackground: "#FFFFFF",
-    buttonText: "#FFFFFF",
     card: "#FFFFFF",
-    text: "#356F50",              // dark neutral for readability
-    textSecondary: "#356F50",
-
-    primary: "#356F50",           // your green (main brand)
-    secondary: "#1B2A6B",         // navy (from logo)
-    accent: "#FFD700",            // gold highlight
-
-    inputBackGround: "#E6F4EC",   // soft green input
-    success: "#2E8B57",           // success green
-    errorColor: "#DC143C",        // red
-
-    border: "#D1E7DD",            // soft gold border
+  
+    text: "#0F172A",
+    textSecondary: "#64748B",
+  
+    buttonText: "#FFFFFF",
+  
+    primary: "#1D4ED8",             // 🔵 main brand (logo blue)
+    secondary: "#22C55E",           // 🟢 green from logo
+    accent: "#F97316",              // 🟠 orange highlight
+  
+    inputBackGround: "#E0E7FF",     // light blue tint
+    border: "#CBD5F5",
+  
+    success: "#22C55E",             // consistent with logo green
+    errorColor: "#DC2626",      // soft gold border
 };
 
 export const yellow = {

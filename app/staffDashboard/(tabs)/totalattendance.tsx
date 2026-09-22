@@ -1,7 +1,8 @@
 import { RootState } from '@/action/store';
 import { ThemeContext } from '@/action/theme/ThemeContext';
 import { Theme } from '@/action/theme/themeReducer';
-import { MONTHS, daysInMonth } from '@/app/CommonUtils';
+import { MONTHS, daysInMonth } from '@/components/CommonUtils';
+
 import Skeleton from '@/components/Skeleton';
 import { API_BASE_URL } from '@/config';
 import { getDeviceId } from '@/helper/getDeviceId';
@@ -11,7 +12,7 @@ import axios from 'axios';
 import { Buffer } from 'buffer';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import moment from 'moment';
-import React, { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import {
   Image,
   Platform,

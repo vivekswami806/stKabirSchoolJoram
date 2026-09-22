@@ -99,7 +99,7 @@ function getStyles(theme: Theme) {
       flexDirection: 'row',
       backgroundColor: theme.background,
       marginHorizontal: 20,
-      marginBottom: 24,
+      marginBottom: 12,
       borderRadius: 16,
       padding: 0,
       justifyContent: 'space-between',
@@ -164,7 +164,7 @@ function getStyles(theme: Theme) {
       borderRadius: 16,
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 8,
+      marginBottom: 0,
     },
     menuLabel: {
       fontSize: 12,

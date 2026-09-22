@@ -130,7 +130,7 @@ export default function TeacherLeaveApprovalScreen() {
       let tenantId = Buffer.from(encodedTenant, "base64").toString("utf-8");
 
       const response = await axios.get(
-        `${API_BASE_URL}leaves/getClassWiseLeaves?className=${userDetail.staffClass}&sectionName=A`,
+        `${API_BASE_URL}leaves/getClassWiseLeaves?className=${userDetail.staffClass}&sectionName=${userDetail.staffClass}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -400,7 +400,7 @@ export default function TeacherLeaveApprovalScreen() {
                     </View>
 
                     <View style={styles.statusContainer}>
-                      <Text style={styles.statusLabel}>Mark as:</Text>
+                      <Text style={styles.statusLabel}>Submit as:</Text>
 
                       <View
                         style={[

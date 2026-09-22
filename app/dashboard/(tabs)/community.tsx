@@ -140,38 +140,38 @@ const StudentDocuments: React.FC = () => {
 
       {/* Actions */}
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.actionBtn, styles.viewBtn]}
-          onPress={() =>
-            downloadDocument(
-              item.ownerType,
-              item.ownerId,
-              item.documentType,
-              item.fileName,
-              "open"
-            ).catch(console.log)
-          }
-        >
-          <Ionicons name="eye-outline" size={16} color="#fff" />
-          <Text style={styles.btnText}>View</Text>
-        </TouchableOpacity>
+  <TouchableOpacity
+    style={[styles.actionBtn, styles.viewBtn]}
+    onPress={() =>
+      downloadDocument(
+        item.ownerType,
+        item.ownerId,
+        item.documentType,
+        item.fileName,
+        "view"
+      ).catch(console.error)
+    }
+  >
+    <Ionicons name="eye-outline" size={16} color="#fff" />
+    <Text style={styles.btnText}>View</Text>
+  </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.actionBtn, styles.downloadBtn]}
-          onPress={() =>
-            downloadDocument(
-              item.ownerType,
-              item.ownerId,
-              item.documentType,
-              item.fileName,
-              "open"
-            ).catch(console.log)
-          }
-        >
-          <Ionicons name="download-outline" size={16} color="#fff" />
-          <Text style={styles.btnText}>Download</Text>
-        </TouchableOpacity>
-      </View>
+  <TouchableOpacity
+    style={[styles.actionBtn, styles.downloadBtn]}
+    onPress={() =>
+      downloadDocument(
+        item.ownerType,
+        item.ownerId,
+        item.documentType,
+        item.fileName,
+        "download"
+      ).catch(console.error)
+    }
+  >
+    <Ionicons name="download-outline" size={16} color="#fff" />
+    <Text style={styles.btnText}>Download</Text>
+  </TouchableOpacity>
+</View>
     </View>
   );
 

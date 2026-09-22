@@ -24,7 +24,7 @@ import {
 } from "react-native";
 import { ToastService } from "react-native-toastier";
 import { useSelector } from "react-redux";
-import { downloadAttachmentForHomework } from "./downloadnotice";
+import { downloadAttachmentForHomework } from "../../../components/downloadnotice";
 
 interface HomeworkItem {
   id: string;

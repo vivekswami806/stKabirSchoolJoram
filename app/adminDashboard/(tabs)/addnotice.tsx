@@ -1,6 +1,6 @@
 import { ThemeContext } from "@/action/theme/ThemeContext";
 import { Theme } from "@/action/theme/themeReducer";
-import { API_BASE_URL } from "@/config";
+import { API_BASE_URL, classes, sections } from "@/config";
 import { getDeviceId } from "@/helper/getDeviceId";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -12,18 +12,26 @@ import moment from "moment";
 import React, { useContext, useState } from "react";
 import {
   KeyboardAvoidingView,
-  Platform, ScrollView, StyleSheet,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { ToastService } from "react-native-toastier";
 
-
-/* ================== INTERFACES ================== */
-
 export type TargetType = "ALL" | "STAFF" | "STUDENT" | "ALL_STUDENTS";
+
+export type NoticeType =
+  | "NOTICE"
+  | "EVENT"
+  | "GENERAL"
+  | "IMPORTANT"
+  | "EXAM"
+  | "HOLIDAY";
 
 export interface Attachment {
   id: string;
@@ -48,6 +56,43 @@ export interface Notice {
   attachments?: Attachment[];
 }
 
+const CLASS_OPTIONS = [
+  "Class 1",
+  "Class 2",
+  "Class 3",
+  "Class 4",
+  "Class 5",
+  "Class 6",
+  "Class 7",
+  "Class 8",
+  "Class 9",
+  "Class 10",
+  "Class 11",
+  "Class 12",
+];
+
+const NOTICE_TYPE_CONFIG: {
+  value: NoticeType;
+  label: string;
+  icon: string;
+  color: string;
+  bg: string;
+}[] = [
+    { value: "GENERAL", label: "General", icon: "document-text", color: "#6366F1", bg: "#EEF2FF" },
+    { value: "NOTICE", label: "Notice", icon: "megaphone", color: "#0EA5E9", bg: "#E0F2FE" },
+    { value: "EVENT", label: "Event", icon: "calendar", color: "#F59E0B", bg: "#FEF3C7" },
+    { value: "IMPORTANT", label: "Important", icon: "alert-circle", color: "#EF4444", bg: "#FEE2E2" },
+    { value: "EXAM", label: "Exam", icon: "school", color: "#8B5CF6", bg: "#F5F3FF" },
+    { value: "HOLIDAY", label: "Holiday", icon: "sunny", color: "#10B981", bg: "#D1FAE5" },
+  ];
+
+const TARGET_CONFIG: { value: TargetType; label: string; icon: string }[] = [
+  { value: "ALL", label: "All", icon: "people" },
+  { value: "STAFF", label: "Staff", icon: "briefcase" },
+  { value: "ALL_STUDENTS", label: "All Students", icon: "school" },
+  { value: "STUDENT", label: "By Class", icon: "person" },
+];
+
 export default function AddNoticeScreen() {
   const router = useRouter();
   const themeState = useContext(ThemeContext);
@@ -60,15 +105,19 @@ export default function AddNoticeScreen() {
   const [noticeDate, setNoticeDate] = useState<Date | null>(null);
   const [expireDate, setExpireDate] = useState<Date | null>(null);
   const [selectTargetType, setSelectTargetType] = useState<TargetType>("ALL");
+  const [selectNoticeType, setSelectNoticeType] = useState<NoticeType>("GENERAL");
+  const [className, setClassName] = useState("");
+  const [section, setSection] = useState("");
   const [attachment, setAttachment] = useState<PickedFile | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [activePicker, setActivePicker] = useState<"NOTICE" | "EXPIRE" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showClassModal, setShowClassModal] = useState(false);
+  const [showSectionModal, setShowSectionModal] = useState(false);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  /* =========== DATE HANDLER =========== */
   const onDateChange = (_: any, selectedDate?: Date) => {
     setShowPicker(false);
     if (!selectedDate || !activePicker) return;
@@ -94,74 +143,48 @@ export default function AddNoticeScreen() {
 
     setActivePicker(null);
   };
-  /* =========== SUBMIT HANDLER =========== */
+
   const submitNotice = async () => {
-    if (loading) return; // prevent double submit
+    if (loading) return;
 
     if (!title.trim()) {
-      ToastService.show({
-        type: "info",
-        message: "Please enter notice title",
-        duration: 3000,
-        contentContainerStyle: { flex: 1 },
-      });
+      ToastService.show({ type: "info", message: "Please enter notice title", duration: 3000, contentContainerStyle: { flex: 1 } });
       return;
     }
-
     if (!description.trim()) {
-      ToastService.show({
-        type: "info",
-        message: "Please enter notice description",
-        duration: 3000,
-        contentContainerStyle: { flex: 1 },
-      });
+      ToastService.show({ type: "info", message: "Please enter notice description", duration: 3000, contentContainerStyle: { flex: 1 } });
       return;
     }
-
     if (!noticeDate || !expireDate) {
-      ToastService.show({
-        type: "info",
-        message: "Please select both notice and expiry dates",
-        duration: 3000,
-        contentContainerStyle: { flex: 1 },
-      });
+      ToastService.show({ type: "info", message: "Please select both notice and expiry dates", duration: 3000, contentContainerStyle: { flex: 1 } });
       return;
     }
-
     if (expireDate < noticeDate) {
-      ToastService.show({
-        type: "info",
-        message: "Expiry date must be after notice date",
-        duration: 3000,
-        contentContainerStyle: { flex: 1 },
-      });
+      ToastService.show({ type: "info", message: "Expiry date must be after notice date", duration: 3000, contentContainerStyle: { flex: 1 } });
+      return;
+    }
+    if (selectTargetType === "STUDENT" && !className) {
+      ToastService.show({ type: "info", message: "Please select a class", duration: 3000, contentContainerStyle: { flex: 1 } });
       return;
     }
 
     try {
       setLoading(true);
-
       const token = await AsyncStorage.getItem("auth_token");
       const encodedTenant = await AsyncStorage.getItem("auth_tenant");
-
-      if (!token || !encodedTenant) {
-        throw new Error("Authentication missing");
-      }
-
+      if (!token || !encodedTenant) throw new Error("Authentication missing");
       const tenantId = Buffer.from(encodedTenant, "base64").toString("utf-8");
 
-      // console.log("-----noticeDate|", noticeDate, moment(noticeDate).format("YYYY-MM-DD"));
-      
       const formData = new FormData();
       formData.append("title", title);
       formData.append("description", description);
       formData.append("targetType", selectTargetType);
-      formData.append("noticeType", "GENERAL");
+      formData.append("noticeType", selectNoticeType);
       formData.append("startingDate", moment(noticeDate!).format("YYYY-MM-DD"));
       formData.append("expiryDate", moment(expireDate!).format("YYYY-MM-DD"));
-      formData.append("className", "");
-      formData.append("section", "");
-      
+      formData.append("className", className);
+      formData.append("section", section);
+
       if (attachment) {
         formData.append("files", {
           uri: attachment.uri,
@@ -169,7 +192,7 @@ export default function AddNoticeScreen() {
           type: attachment.type,
         } as any);
       }
-      
+
       const response = await fetch(`${API_BASE_URL}notice/createNotice`, {
         method: "POST",
         headers: {
@@ -180,33 +203,16 @@ export default function AddNoticeScreen() {
         },
         body: formData,
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.log("Upload failed:", errorText);
         throw new Error(errorText);
       }
-      
-      const result = await response.json();
-      // console.log("Upload success:", result);
 
-      ToastService.show({
-        type: "info",
-        message: "Notice added successfully",
-        duration: 3000,
-        contentContainerStyle: { flex: 1 },
-      });
-
+      ToastService.show({ type: "info", message: "Notice added successfully", duration: 3000, contentContainerStyle: { flex: 1 } });
       router.replace("/dashboard/(tabs)/notice");
     } catch (error: any) {
-      console.log("Notice error:", error?.response?.data?.message || error);
-      
-      ToastService.show({
-        type: "info",
-        message: error?.response?.data?.message || "Failed to add notice",
-        duration: 3000,
-        contentContainerStyle: { flex: 1 },
-      });
+      ToastService.show({ type: "info", message: error?.response?.data?.message || "Failed to add notice", duration: 3000, contentContainerStyle: { flex: 1 } });
     } finally {
       setLoading(false);
     }
@@ -219,34 +225,12 @@ export default function AddNoticeScreen() {
         copyToCacheDirectory: true,
         multiple: false,
       });
-
       if (result.canceled) return;
-
       const asset = result.assets[0];
-
-      // ✅ FIXED: Use URI as is. Android needs content:// and iOS needs file://
-      // DocumentPicker already provides the correct prefix.
-      const normalizedFile = {
-        uri: asset.uri,
-        name: asset.name,
-        type: asset.mimeType || "application/octet-stream",
-      };
-
-      setAttachment(normalizedFile);
-      ToastService.show({
-        type: "info",
-        message: "File attached successfully",
-        duration: 3000,
-        contentContainerStyle: { flex: 1 },
-      });
+      setAttachment({ uri: asset.uri, name: asset.name, type: asset.mimeType || "application/octet-stream" });
+      ToastService.show({ type: "info", message: "File attached successfully", duration: 3000, contentContainerStyle: { flex: 1 } });
     } catch (error) {
-      console.error(error);
-      ToastService.show({
-        type: "info",
-        message: "Failed to pick file",
-        duration: 3000,
-        contentContainerStyle: { flex: 1 },
-      });
+      ToastService.show({ type: "info", message: "Failed to pick file", duration: 3000, contentContainerStyle: { flex: 1 } });
     }
   };
 
@@ -257,61 +241,337 @@ export default function AddNoticeScreen() {
     expireDate &&
     !loading;
 
+  const selectedNoticeConfig = NOTICE_TYPE_CONFIG.find((n) => n.value === selectNoticeType);
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => router.push("/dashboard/(tabs)/notice")}>
-          <Ionicons name="arrow-back" size={26} style={styles.backButton} />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>Add Notice</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
 
-      <Text style={styles.label}>Notice Title</Text>
-      <TextInput style={styles.input} placeholder="Enter notice title" value={title} onChangeText={setTitle} placeholderTextColor="#999" />
-
-      <Text style={styles.label}>Notice Description</Text>
-      <TextInput style={[styles.input, { height: 100 }]} placeholder="Enter notice description" value={description} onChangeText={setDescription} multiline placeholderTextColor="#999" />
-
-      <Text style={styles.label}>Notice Date</Text>
-      <TouchableOpacity style={styles.dateInput} onPress={() => { setActivePicker("NOTICE"); setShowPicker(true); }}>
-        <Text style={styles.dateText}>{noticeDate ? noticeDate.toDateString() : "Select date"}</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.label}>Expire Date</Text>
-      <TouchableOpacity style={styles.dateInput} onPress={() => { setActivePicker("EXPIRE"); setShowPicker(true); }}>
-        <Text style={styles.dateText}>{expireDate ? expireDate.toDateString() : "Select date"}</Text>
-      </TouchableOpacity>
-
-      {showPicker && <DateTimePicker value={noticeDate || new Date()} mode="date" display={Platform.OS === "ios" ? "spinner" : "default"} minimumDate={today} onChange={onDateChange} />}
-
-      <Text style={styles.label}>Target Audience</Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 }}>
-        {(["ALL", "STAFF", "STUDENT", "ALL_STUDENTS"] as TargetType[]).map((item) => (
-          <TouchableOpacity key={item} onPress={() => setSelectTargetType(item)} style={{ padding: 10, borderRadius: 6, backgroundColor: selectTargetType === item ? "#4C8EF7" : "#E5E7EB" }}>
-            <Text style={{ color: selectTargetType === item ? "#FFF" : "#000", fontWeight: "600" }}>{item.replace("_", " ")}</Text>
+        {/* ── Header ── */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => router.push("/dashboard/(tabs)/notice")} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={22} color={theme.text} />
           </TouchableOpacity>
-        ))}
-      </View>
+          <Text style={styles.headerText}>Add Notice</Text>
+          <View style={{ width: 40 }} />
+        </View>
 
-      <Text style={styles.label}>Attachment</Text>
-      <TouchableOpacity style={[styles.dateInput, { flexDirection: "row", alignItems: "center" }]} onPress={uploadAttachment}>
-        <Ionicons name="attach" size={20} color="#555" />
-        <Text style={{ marginLeft: 10, color: attachment ? "#111827" : "#9CA3AF", fontWeight: attachment ? "600" : "400" }} numberOfLines={1} ellipsizeMode="middle">
-          {attachment ? attachment.name : "Attach file"}
+        {/* ── Notice Type ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notice Type</Text>
+          <View style={styles.noticeTypeGrid}>
+  {NOTICE_TYPE_CONFIG.map((item) => {
+    const active = selectNoticeType === item.value;
+    return (
+      <TouchableOpacity
+        key={item.value}
+        onPress={() => setSelectNoticeType(item.value)}
+        style={[
+          styles.noticeTypeCard,
+          { borderColor: active ? item.color : theme.border, backgroundColor: active ? item.bg : theme.background },
+        ]}
+      >
+        <View style={[styles.noticeTypeIconWrap, { backgroundColor: active ? item.color : "#E5E7EB" }]}>
+          <Ionicons name={item.icon as any} size={16} color={active ? "#fff" : "#6B7280"} />
+        </View>
+        <Text style={[styles.noticeTypeLabel, { color: active ? item.color : theme.text }]}>
+          {item.label}
         </Text>
+        {active && (
+          <View style={[styles.noticeTypeDot, { backgroundColor: item.color }]} />
+        )}
       </TouchableOpacity>
+    );
+  })}
+</View>
+        </View>
 
-      <TouchableOpacity style={[styles.button, !isFormValid && { opacity: 0.8 }]} disabled={!isFormValid} onPress={submitNotice}>
-        <Text style={styles.buttonText}>{loading ? "Submitting..." : "Add Notice"}</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  </KeyboardAvoidingView>
+        {/* ── Title ── */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Notice Title</Text>
+          <View style={styles.inputWrapper}>
+            <Ionicons name="create-outline" size={18} color="#9CA3AF" style={styles.inputIcon} />
+            <TextInput
+              style={styles.inputWithIcon}
+              placeholder="Enter notice title"
+              value={title}
+              onChangeText={setTitle}
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+        </View>
+
+        {/* ── Description ── */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            style={styles.textarea}
+            placeholder="Write notice details here..."
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={4}
+            placeholderTextColor="#9CA3AF"
+            textAlignVertical="top"
+          />
+        </View>
+
+        {/* ── Dates ── */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Date Range</Text>
+          <View style={styles.dateRow}>
+            <TouchableOpacity
+              style={[styles.dateCard, { flex: 1, marginRight: 8 }]}
+              onPress={() => { setActivePicker("NOTICE"); setShowPicker(true); }}
+            >
+              <View style={styles.dateCardIconWrap}>
+                <Ionicons name="calendar-outline" size={18} color="#4C8EF7" />
+              </View>
+              <View>
+                <Text style={styles.dateCardMeta}>Start Date</Text>
+                <Text style={[styles.dateCardValue, { color: noticeDate ? theme.text : "#9CA3AF" }]}>
+                  {noticeDate ? moment(noticeDate).format("DD MMM YYYY") : "Select"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.dateCard, { flex: 1, marginLeft: 8 }]}
+              onPress={() => { setActivePicker("EXPIRE"); setShowPicker(true); }}
+            >
+              <View style={[styles.dateCardIconWrap, { backgroundColor: "#FEE2E2" }]}>
+                <Ionicons name="time-outline" size={18} color="#EF4444" />
+              </View>
+              <View>
+                <Text style={styles.dateCardMeta}>Expiry Date</Text>
+                <Text style={[styles.dateCardValue, { color: expireDate ? theme.text : "#9CA3AF" }]}>
+                  {expireDate ? moment(expireDate).format("DD MMM YYYY") : "Select"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {showPicker && (
+          <DateTimePicker
+            value={noticeDate || new Date()}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            minimumDate={today}
+            onChange={onDateChange}
+          />
+        )}
+
+        {/* ── Target Audience ── */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Target Audience</Text>
+          <View style={styles.targetRow}>
+            {TARGET_CONFIG.map((item) => {
+              const active = selectTargetType === item.value;
+              return (
+                <TouchableOpacity
+                  key={item.value}
+                  onPress={() => {
+                    setSelectTargetType(item.value);
+                    if (item.value !== "STUDENT") {
+                      setClassName("");
+                      setSection("");
+                    }
+                  }}
+                  style={[
+                    styles.targetChip,
+                    { backgroundColor: active ? "#4C8EF7" : theme.background, borderColor: active ? "#4C8EF7" : theme.border },
+                  ]}
+                >
+                  <Ionicons name={item.icon as any} size={14} color={active ? "#fff" : "#6B7280"} />
+                  <Text style={[styles.targetChipText, { color: active ? "#fff" : theme.text }]}>{item.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* ── Class & Section (only for STUDENT) ── */}
+          {selectTargetType === "STUDENT" && (
+            <View style={styles.studentFilters}>
+              <View style={styles.studentFilterHeader}>
+                <Ionicons name="filter" size={14} color="#4C8EF7" />
+                <Text style={styles.studentFilterTitle}>Filter by Class</Text>
+              </View>
+              <View style={styles.classRow}>
+                {/* Class */}
+                <TouchableOpacity
+                  style={[styles.classPickerBtn, { flex: 1, marginRight: 8 }]}
+                  onPress={() => setShowClassModal(true)}
+                >
+                  <Ionicons
+                    name="school-outline"
+                    size={16}
+                    color={className ? "#4C8EF7" : "#9CA3AF"}
+                  />
+                  <Text
+                    style={[
+                      styles.classPickerText,
+                      { color: className ? theme.text : "#9CA3AF" },
+                    ]}
+                  >
+                    {className || "Select Class"}
+                  </Text>
+                  <Ionicons name="chevron-down" size={14} color="#9CA3AF" />
+                </TouchableOpacity>
+
+                {/* Section */}
+                <TouchableOpacity
+                  style={[styles.classPickerBtn, { flex: 1, marginLeft: 8 }]}
+                  onPress={() => setShowSectionModal(true)}
+                >
+                  <Ionicons
+                    name="layers-outline"
+                    size={16}
+                    color={section ? "#4C8EF7" : "#9CA3AF"}
+                  />
+                  <Text
+                    style={[
+                      styles.classPickerText,
+                      { color: section ? theme.text : "#9CA3AF" },
+                    ]}
+                  >
+                    {section || "Select Section"}
+                  </Text>
+                  <Ionicons name="chevron-down" size={14} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+
+              {(className || section) && (
+                <View style={styles.filterSummary}>
+                  <Ionicons name="checkmark-circle" size={13} color="#10B981" />
+                  <Text style={styles.filterSummaryText}>
+                    {className
+                      ? (classes.find((c) => c.value === className)?.label ?? "All Classes")
+                      : "All Classes"}
+                    {section ? ` \u2014 Section ${section}` : ""}
+                  </Text>
+
+                  {/* ✅ Use flex:1 spacer instead of marginLeft:"auto" */}
+                  <View style={{ flex: 1 }} />
+
+                  <TouchableOpacity onPress={() => { setClassName(""); setSection(""); }}>
+                    <Text style={styles.clearText}>Clear</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* ── Attachment ── */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Attachment <Text style={styles.optional}>(optional)</Text></Text>
+          <TouchableOpacity
+            style={[styles.attachBtn, attachment && styles.attachBtnActive]}
+            onPress={uploadAttachment}
+          >
+            <Ionicons
+              name={attachment ? "document-attach" : "cloud-upload-outline"}
+              size={22}
+              color={attachment ? "#4C8EF7" : "#9CA3AF"}
+            />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={[styles.attachLabel, { color: attachment ? theme.text : "#9CA3AF" }]} numberOfLines={1} ellipsizeMode="middle">
+                {attachment ? attachment.name : "Tap to attach a file"}
+              </Text>
+              {attachment && <Text style={styles.attachSub}>Tap to change file</Text>}
+            </View>
+            {attachment && (
+              <TouchableOpacity
+                onPress={() => setAttachment(null)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close-circle" size={20} color="#EF4444" />
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Submit ── */}
+        <TouchableOpacity
+          style={[styles.submitBtn, !isFormValid && { opacity: 0.55 }]}
+          disabled={!isFormValid}
+          onPress={submitNotice}
+        >
+          {loading ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Ionicons name="sync" size={18} color="#fff" />
+              <Text style={styles.submitText}>Submitting…</Text>
+            </View>
+          ) : (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Ionicons name="send" size={18} color="#fff" />
+              <Text style={styles.submitText}>Publish Notice</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* ── Class Modal ── */}
+
+      {/* ── Section Modal ── */}
+      <Modal visible={showSectionModal} transparent animationType="slide" onRequestClose={() => setShowSectionModal(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowSectionModal(false)} />
+        <View style={[styles.modalSheet, { backgroundColor: theme.background }]}>
+          <View style={styles.modalHandle} />
+          <Text style={[styles.modalTitle, { color: theme.text }]}>Select Section</Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <TouchableOpacity
+              style={[styles.classOption, !section && styles.classOptionActive]}
+              onPress={() => { setSection(""); setShowSectionModal(false); }}
+            >
+              <Text style={[styles.classOptionText, { color: !section ? "#4C8EF7" : theme.text }]}>All Sections</Text>
+              {!section && <Ionicons name="checkmark" size={16} color="#4C8EF7" />}
+            </TouchableOpacity>
+            {sections.map((s) => (
+              <TouchableOpacity
+                key={s.value}
+                style={[styles.classOption, section === s.value && styles.classOptionActive]}
+                onPress={() => { setSection(s.value); setShowSectionModal(false); }}
+              >
+                <Text style={[styles.classOptionText, { color: section === s.value ? "#4C8EF7" : theme.text }]}>{s.label}</Text>
+                {section === s.value && <Ionicons name="checkmark" size={16} color="#4C8EF7" />}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* ── Class Modal (replace CLASS_OPTIONS with classes import) ── */}
+      <Modal visible={showClassModal} transparent animationType="slide" onRequestClose={() => setShowClassModal(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowClassModal(false)} />
+        <View style={[styles.modalSheet, { backgroundColor: theme.background }]}>
+          <View style={styles.modalHandle} />
+          <Text style={[styles.modalTitle, { color: theme.text }]}>Select Class</Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <TouchableOpacity
+              style={[styles.classOption, !className && styles.classOptionActive]}
+              onPress={() => { setClassName(""); setShowClassModal(false); }}
+            >
+              <Text style={[styles.classOptionText, { color: !className ? "#4C8EF7" : theme.text }]}>All Classes</Text>
+              {!className && <Ionicons name="checkmark" size={16} color="#4C8EF7" />}
+            </TouchableOpacity>
+            {classes.map((c) => (
+              <TouchableOpacity
+                key={c.value}
+                style={[styles.classOption, className === c.value && styles.classOptionActive]}
+                onPress={() => { setClassName(c.value); setShowClassModal(false); }}
+              >
+                <Text style={[styles.classOptionText, { color: className === c.value ? "#4C8EF7" : theme.text }]}>{c.label}</Text>
+                {className === c.value && <Ionicons name="checkmark" size={16} color="#4C8EF7" />}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 }
-
-/* ================= STYLES ================= */
 
 function getStyles(theme: Theme) {
   return StyleSheet.create({
@@ -319,63 +579,340 @@ function getStyles(theme: Theme) {
       flex: 1,
       paddingTop: Platform.OS === "ios" ? 60 : 50,
       backgroundColor: theme.background,
-      paddingHorizontal: 20
+      paddingHorizontal: 16,
     },
+
+    /* Header */
     headerRow: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingBottom: 16,
-      paddingHorizontal: 20,
-      // borderBottomWidth: 1,
-      // borderBottomColor: "#e9ecef",
+      marginBottom: 20,
     },
-
-    backButton: {
+    backBtn: {
       width: 40,
-      color: theme.text,
+      height: 40,
+      // borderRadius: 20,
+      // borderWidth: 1,
+      // borderColor: theme.border,
+      alignItems: "center",
+      justifyContent: "center",
     },
     headerText: {
       fontSize: 20,
-      fontWeight: "600",
-      color:  theme.text,
-    },
-    label: {
-      fontSize: 16,
-      fontWeight: "600",
-      marginBottom: 8,
+      fontWeight: "700",
       color: theme.text,
     },
-    input: {
-      borderWidth: 1,
-      borderColor: theme.border,
-      borderRadius: 8,
-      padding: 12,
-      marginBottom: 16,
-      color:  theme.text,
+
+    /* Section */
+    section: {
+      marginBottom: 20,
     },
-    dateInput: {
-      borderWidth: 1,
-      borderColor: theme.border,
-      borderRadius: 8,
-      padding: 14,
-      marginBottom: 24,
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.text,
+      marginBottom: 10,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.text,
+      marginBottom: 8,
+    },
+    optional: {
+      fontSize: 12,
+      fontWeight: "400",
+      color: "#9CA3AF",
+    },
+
+    /* Notice Type Grid */
+    noticeTypeGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      marginHorizontal: -5, // ✅ offset card margins
+    },
+    noticeTypeCard: {
+      width: "30%",
+      borderWidth: 1.5,
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 8,
+      alignItems: "center",
+      margin: 5,           // ✅ instead of gap
+      position: "relative",
+    },
+    noticeTypeIconWrap: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: "center",
       justifyContent: "center",
+      marginBottom: 6,     // ✅ instead of gap
     },
-    dateText: {
-      color:  theme.text,
+    targetRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      marginBottom: 12,
+    },
+    targetChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 20,
+      borderWidth: 1.5,
+      marginRight: 8,      // ✅ instead of gap
+      marginBottom: 8,     // ✅ instead of gap
+    },
+    targetChipText: {
+      fontSize: 13,
+      fontWeight: "600",
+      marginLeft: 6,       // ✅ instead of gap
+    },
+
+    noticeTypeLabel: {
+      fontSize: 11,
+      fontWeight: "600",
+    },
+    noticeTypeDot: {
+      position: "absolute",
+      top: 6,
+      right: 6,
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+    },
+
+    /* Input */
+    inputWrapper: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      backgroundColor: theme.background,
+    },
+    inputIcon: {
+      marginRight: 8,
+    },
+    inputWithIcon: {
+      flex: 1,
+      paddingVertical: 13,
+      color: theme.text,
       fontSize: 15,
     },
-    button: {
-      backgroundColor: "#228B22",
-      padding: 14,
-      borderRadius: 8,
-      alignItems: "center",
+    textarea: {
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 10,
+      padding: 12,
+      color: theme.text,
+      fontSize: 15,
+      minHeight: 100,
     },
-    buttonText: {
-      color:theme.text,
+
+    /* Dates */
+    dateRow: {
+      flexDirection: "row",
+    },
+    dateCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 12,
+      padding: 12,
+      gap: 10,
+    },
+    dateCardIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: "#EFF6FF",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    dateCardMeta: {
+      fontSize: 11,
+      color: "#9CA3AF",
+      fontWeight: "500",
+    },
+    dateCardValue: {
+      fontSize: 13,
+      fontWeight: "600",
+      marginTop: 2,
+    },
+
+    /* Student Filters */
+    studentFilters: {
+      backgroundColor: "#EFF6FF",
+      borderRadius: 12,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: "#BFDBFE",
+    },
+    studentFilterHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      marginBottom: 10,
+    },
+    studentFilterTitle: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: "#4C8EF7",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+    },
+    classRow: {
+      flexDirection: "row",
+    },
+    classPickerBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+      borderWidth: 1,
+      borderColor: "#BFDBFE",
+      borderRadius: 9,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      backgroundColor: "#fff",
+    },
+    classPickerText: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: "500",
+    },
+    sectionInputWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+      borderWidth: 1,
+      borderColor: "#BFDBFE",
+      borderRadius: 9,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      backgroundColor: "#fff",
+    },
+    sectionInput: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: "500",
+      color: "#111827",
+      padding: 0,
+    },
+    filterSummary: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      marginTop: 10,
+      paddingTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: "#BFDBFE",
+    },
+    filterSummaryText: {
+      fontSize: 12,
+      color: "#374151",
+      fontWeight: "500",
+    },
+    clearText: {
+      fontSize: 12,
+      color: "#EF4444",
+      fontWeight: "600",
+    },
+
+    /* Attachment */
+    attachBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1.5,
+      borderColor: theme.border,
+      borderRadius: 12,
+      borderStyle: "dashed",
+      padding: 14,
+    },
+    attachBtnActive: {
+      borderColor: "#4C8EF7",
+      borderStyle: "solid",
+      backgroundColor: "#EFF6FF",
+    },
+    attachLabel: {
+      fontSize: 14,
+      fontWeight: "500",
+    },
+    attachSub: {
+      fontSize: 11,
+      color: "#9CA3AF",
+      marginTop: 2,
+    },
+
+    /* Submit */
+    submitBtn: {
+      backgroundColor: "#228B22",
+      padding: 16,
+      borderRadius: 12,
+      alignItems: "center",
+      marginTop: 4,
+      shadowColor: "#228B22",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    submitText: {
+      color: "#fff",
       fontWeight: "700",
       fontSize: 16,
+    },
+
+    /* Modal */
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.4)",
+    },
+    modalSheet: {
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      padding: 20,
+      maxHeight: "60%",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 10,
+      elevation: 10,
+    },
+    modalHandle: {
+      width: 40,
+      height: 4,
+      backgroundColor: "#E5E7EB",
+      borderRadius: 2,
+      alignSelf: "center",
+      marginBottom: 16,
+    },
+    modalTitle: {
+      fontSize: 17,
+      fontWeight: "700",
+      marginBottom: 14,
+    },
+    classOption: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: 13,
+      paddingHorizontal: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: "#F3F4F6",
+    },
+    classOptionActive: {
+      borderBottomColor: "#BFDBFE",
+    },
+    classOptionText: {
+      fontSize: 15,
+      fontWeight: "500",
     },
   });
 }

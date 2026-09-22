@@ -3,27 +3,20 @@ import { getDeviceId } from "@/helper/getDeviceId";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { Buffer } from "buffer";
-import { router, useLocalSearchParams } from "expo-router";
 import moment from "moment";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Platform } from "react-native";
 import { ToastService } from "react-native-toastier";
 import HomeworkForm from "./HomeworkForm";
 
-const STORAGE_KEY = "UPDATE_HOMEWORK_DATA";
+interface Props {
+  item: any;
+  onDone: () => void;
+}
 
-const UpdateHomework = () => {
-  const { homeworkId } = useLocalSearchParams<{ homeworkId: string }>();
-  const [initialValues, setInitialValues] = useState<any>(null);
-  const [resetKey, setResetKey] = useState(0);
+const UpdateHomework = ({ item, onDone }: Props) => {
   const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-      if (raw) setInitialValues(JSON.parse(raw));
-    });
-  }, []);
-
-  if (!initialValues) return null;
+  const [resetKey, setResetKey] = useState(0);
 
   const submit = async (data: any) => {
     setLoading(true);
@@ -31,46 +24,27 @@ const UpdateHomework = () => {
       const token = await AsyncStorage.getItem("auth_token");
       const encodedTenant = await AsyncStorage.getItem("auth_tenant");
       const deviceId = await getDeviceId();
-
       const tenantId = Buffer.from(encodedTenant!, "base64").toString("utf-8");
-      
+
       const formData = new FormData();
       formData.append("title", data.title);
       formData.append("description", data.description);
       formData.append("subject", data.subject);
-      formData.append("className", data.selectedClass.name);
-      formData.append("section", data.selectedSection.name);
+      formData.append("className", data.selectedClass.value);
+      formData.append("section", data.selectedSection.value);
       formData.append("dueDate", moment(data.dateObj).format("YYYY-MM-DD"));
-      // formData.append("homeworkDate", moment().format("YYYY-MM-DD"));
-      if (data.attachment) {
-        if (Platform.OS === "web") {
-          const blob = await fetch(data.attachment.uri).then(r => r.blob());
-          formData.append("files", new File([blob], data.attachment.name));
-        } else {
-          formData.append("files", data.attachment);
-        }
+      formData.append("homeworkDate", moment(new Date()).format("YYYY-MM-DD"));
+
+      if (data?.attachment) {
+        formData.append("files", {
+          uri: data?.attachment.uri,
+          name: data?.attachment.name,
+          type: data?.attachment.type,
+        } as any);
       }
 
-      // const logFormData = (formData: FormData) => {
-      //   const fd: any = formData;
-      
-      //   if (fd?._parts) {
-      //     fd._parts.forEach((part: any[]) => {
-      //       console.log("----",part[0], part[1]);
-      //     });
-      //   } else if (fd?.entries) {
-      //     for (const pair of fd.entries()) {
-      //       console.log("----",pair[0], pair[1]);
-      //     }
-      //   } else {
-      //     console.log("Unable to log FormData");
-      //   }
-      // };
-
-      // logFormData(formData);
-
-      let response =   await axios.put(
-        `${API_BASE_URL}homework/updateHomeWork/${homeworkId}`,
+      await axios.post(
+        `${API_BASE_URL}homework/updateHomeWork/${item.id}`,
         formData,
         {
           headers: {
@@ -81,35 +55,25 @@ const UpdateHomework = () => {
           },
         }
       );
-      
-      await AsyncStorage.removeItem(STORAGE_KEY);
-      ToastService.show({
-        type: "success",
-        message: "Homework Update Successful",
-        duration: 2500, contentContainerStyle: {flex: 1,}
-      });
-      setResetKey(prev => prev + 1);
-      setLoading(false);
-      
-      router.back();
+
+      ToastService.show({ type: "success", message: "Homework updated successfully", duration: 2500, contentContainerStyle: { flex: 1 } });
+      setResetKey((p) => p + 1);
+      onDone(); // ✅ go back to check tab
     } catch (e: any) {
-      console.log("errrhomework|", e);
+      console.log("Update error:",  e?.response?.data?.message);
+      ToastService.show({ type: "danger", message: e?.response?.data?.message || "Failed to update", duration: 2500, contentContainerStyle: { flex: 1 } });
+    } finally {
       setLoading(false);
-      ToastService.show({
-        type: "danger",
-        message: "Network Error",
-        duration: 2500, contentContainerStyle: {flex: 1,}
-      });
     }
   };
 
   return (
     <HomeworkForm
-      initialValues={initialValues}
+      initialValues={item}
       submitText="Update Homework"
       onSubmit={submit}
       resetKey={resetKey}
-      loading= {loading}
+      loading={loading}
     />
   );
 };

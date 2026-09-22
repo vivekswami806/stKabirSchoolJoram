@@ -1,29 +1,29 @@
 import { RootState } from "@/action/store";
 import { ThemeContext } from "@/action/theme/ThemeContext";
 import { Theme } from "@/action/theme/themeReducer";
+import { NoteCard } from "@/components/NoteCard";
 import {
-    DayType,
-    NoteStatus,
-    TeacherNote,
-    addNote,
-    deleteNote,
-    getNotes,
-    getPendingNotesCount,
-    getStats,
-    handleDailyUpdate,
-    updateStatus,
-    waitForDbReady
+  DayType,
+  NoteStatus,
+  TeacherNote,
+  addNote,
+  deleteNote,
+  getNotes,
+  getPendingNotesCount,
+  getStats,
+  handleDailyUpdate,
+  updateStatus,
+  waitForDbReady
 } from "@/helper/teacherNotesDb";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useContext, useEffect, useState } from "react";
 import {
-    Alert, FlatList, Modal, RefreshControl, ScrollView, StyleSheet,
-    Text, TextInput, TouchableOpacity,
-    View
+  Alert, FlatList, Modal, RefreshControl, ScrollView, StyleSheet,
+  Text, TextInput, TouchableOpacity,
+  View
 } from "react-native";
 import { useSelector } from "react-redux";
-import { NoteCard } from "./components/NoteCard";
 
 export default function TeacherNotesScreen() {
   const themeState = useContext(ThemeContext);

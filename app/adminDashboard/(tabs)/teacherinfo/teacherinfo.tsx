@@ -12,6 +12,7 @@ import React, { useContext, useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
+  Image,
   Platform,
   RefreshControl,
   StyleSheet,
@@ -26,6 +27,8 @@ interface teacher {
   id: string;
   name: string;
   status: boolean;
+  staffSection: string
+  staffImage: string
 }
 
 interface Props {
@@ -72,7 +75,8 @@ export default function TeacherInfo({ onSelectStudent }: Props) {
           },
         }
       );
-
+      // console.log(response.data?.data );
+      
       setStudents(response.data?.data || []);
     } catch (err: any) {
       Alert.alert("Error", err.message || "Failed to load staff");
@@ -89,6 +93,17 @@ export default function TeacherInfo({ onSelectStudent }: Props) {
       : names[0][0];
   };
 
+  const getStatusColor = (status: boolean) => {
+    return status ? "#10B981" : "#EF4444";
+  };
+
+  const getClassDisplay = (staffClass: string, staffSection: string) => {
+    if (!staffClass || staffClass.trim() === "") {
+      return "N/A";
+    }
+    return staffSection ? `${staffClass} - ${staffSection}` : staffClass;
+  };
+
   return (
     <LinearGradient
       colors={[theme.background, theme.background]}
@@ -97,23 +112,36 @@ export default function TeacherInfo({ onSelectStudent }: Props) {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={() => router.push("/(tabs)/home")}>
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/home")}
+            style={styles.backButton}
+          >
             <Ionicons
               name="arrow-back"
               size={26}
               color={theme.text}
             />
           </TouchableOpacity>
-          <Text style={styles.headerText}>Staff Details</Text>
+          <Text style={styles.headerText}>Staff Directory</Text>
+          <View style={styles.headerSpacer} />
         </View>
 
         {loading ? (
           <LeaveSkeleton isDark={isDark} />
+        ) : students.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons
+              name="people-outline"
+              size={60}
+              color={isDark ? "#6B7280" : "#D1D5DB"}
+            />
+            <Text style={styles.emptyText}>No staff members found</Text>
+          </View>
         ) : (
           <FlatList
             data={students}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingBottom: 40 }}
+            contentContainerStyle={styles.listContent}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -128,45 +156,74 @@ export default function TeacherInfo({ onSelectStudent }: Props) {
               <TouchableOpacity
                 style={styles.card}
                 onPress={() => onSelectStudent(item)}
+                activeOpacity={0.7}
               >
-                {/* Accent */}
+                {/* Status Accent Bar */}
                 <View
                   style={[
                     styles.accentBar,
                     {
-                      backgroundColor: item.status
-                        ? "#22c55e"
-                        : "#ef4444",
+                      backgroundColor: getStatusColor(item.status),
                     },
                   ]}
                 />
 
                 <View style={styles.cardContent}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
-                      {getInitials(item.name)}
-                    </Text>
+                  {/* Avatar */}
+                  <View
+                    style={[
+                      styles.avatar,
+                      {
+                        backgroundColor: isDark ? "#5B7FFF" : "#4C8EF7",
+                        borderWidth: 2,
+                        borderColor: getStatusColor(item.status),
+                      },
+                    ]}
+                  >
+                    {item.staffImage ? (
+                      <Image
+                        source={{ uri: item.staffImage }}
+                        style={styles.avatarImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={styles.avatarText}>
+                        {getInitials(item.name)}
+                      </Text>
+                    )}
                   </View>
 
-                  <View>
-                    <Text style={styles.name}>{item.name}</Text>
-                    <Text style={styles.roll}>
-                      Class Teacher: {item.staffClass}
+                  {/* Info Section */}
+                  <View style={styles.infoSection}>
+                    <Text style={styles.name} numberOfLines={1}>
+                      {item.name}
                     </Text>
+                    <View style={styles.classContainer}>
+                      <Ionicons
+                        name="school-outline"
+                        size={13}
+                        color={isDark ? "#9CA3AF" : "#6B7280"}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text style={styles.classText}>
+                        Class Teacher: {getClassDisplay(item.staffClass, item.staffSection)}
+                      </Text>
+                    </View>
                   </View>
                 </View>
 
-                <Ionicons
-                  name={
-                    item.status
-                      ? "checkmark-circle"
-                      : "close-circle"
-                  }
-                  size={22}
-                  color={
-                    item.status ? "#22c55e" : "#ef4444"
-                  }
-                />
+                {/* Status Badge */}
+                <View style={styles.statusBadge}>
+                  <Ionicons
+                    name={
+                      item.status
+                        ? "checkmark-circle"
+                        : "close-circle"
+                    }
+                    size={24}
+                    color={getStatusColor(item.status)}
+                  />
+                </View>
               </TouchableOpacity>
             )}
           />
@@ -185,34 +242,63 @@ function getStyles(theme: Theme, isDark: boolean) {
     headerContainer: {
       flexDirection: "row",
       alignItems: "center",
-      marginHorizontal: 20,
-      marginBottom: 25,
+      justifyContent: "space-between",
+      marginHorizontal: 16,
+      marginBottom: 24,
+    },
+    backButton: {
+      padding: 8,
+      borderRadius: 10,
+      backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
     },
     headerText: {
-      fontSize: 22,
-      fontWeight: "700",
-      marginLeft: 15,
-      color: isDark ? "#fff" : "#111",
+      fontSize: 24,
+      fontWeight: "800",
+      color: theme.text,
+      flex: 1,
+      textAlign: "center",
+    },
+    headerSpacer: {
+      width: 32,
+    },
+    listContent: {
+      paddingHorizontal: 12,
+      paddingBottom: 40,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    emptyText: {
+      marginTop: 16,
+      fontSize: 16,
+      color: isDark ? "#9CA3AF" : "#6B7280",
+      fontWeight: "600",
     },
     card: {
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: isDark
-        ? "rgba(255,255,255,0.06)"
-        : "#ffffff",
-      marginHorizontal: 20,
-      marginBottom: 16,
-      padding: 18,
-      borderRadius: 20,
+        ? "rgba(255,255,255,0.08)"
+        : "#FFFFFF",
+      marginHorizontal: 8,
+      marginBottom: 12,
+      padding: 16,
+      borderRadius: 16,
       borderWidth: isDark ? 1 : 0,
-      borderColor: "rgba(255,255,255,0.06)",
-      elevation: 5,
+      borderColor: "rgba(255,255,255,0.1)",
+      elevation: 4,
+      shadowColor: isDark ? "#000000" : "#4C8EF7",
+      shadowOpacity: isDark ? 0.3 : 0.12,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
     },
     accentBar: {
-      width: 5,
+      width: 4,
       height: "100%",
-      borderRadius: 10,
-      marginRight: 14,
+      borderRadius: 8,
+      marginRight: 12,
     },
     cardContent: {
       flex: 1,
@@ -220,28 +306,48 @@ function getStyles(theme: Theme, isDark: boolean) {
       alignItems: "center",
     },
     avatar: {
-      width: 45,
-      height: 45,
-      borderRadius: 25,
-      backgroundColor: "#4C8EF7",
+      width: 50,
+      height: 50,
+      borderRadius: 12,
       justifyContent: "center",
       alignItems: "center",
-      marginRight: 14,
+      marginRight: 12,
+      flexShrink: 0,
     },
     avatarText: {
       color: "#fff",
-      fontWeight: "700",
-      fontSize: 16,
+      fontWeight: "800",
+      fontSize: 18,
+    },
+    avatarImage: {
+      width: "100%",
+      height: "100%",
+      borderRadius: 10, // slightly smaller than avatar's radius
+    },
+    infoSection: {
+      flex: 1,
+      justifyContent: "center",
     },
     name: {
       fontSize: 16,
       fontWeight: "700",
-      color: isDark ? "#fff" : "#111",
+      color: theme.text,
+      marginBottom: 6,
     },
-    roll: {
-      color: isDark ? "#aaa" : "#555",
-      marginTop: 4,
-      fontSize: 13,
+    classContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    classText: {
+      color: isDark ? "#9CA3AF" : "#6B7280",
+      fontSize: 12,
+      fontWeight: "500",
+      flex: 1,
+    },
+    statusBadge: {
+      padding: 8,
+      justifyContent: "center",
+      alignItems: "center",
     },
   });
 }

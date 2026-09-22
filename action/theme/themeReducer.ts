@@ -22,6 +22,10 @@ export interface Theme {
   secondary?: string;
   success?: string;
   accent?: string;
+  warning?: string;
+  danger?: string;
+  divider?: string;
+  disabled?: string;
 }
 
 export interface ThemeState {

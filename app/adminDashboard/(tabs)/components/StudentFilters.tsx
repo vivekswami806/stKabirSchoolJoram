@@ -2,7 +2,15 @@ import { ThemeContext } from "@/action/theme/ThemeContext";
 import { Theme } from "@/action/theme/themeReducer";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useContext } from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface Option {
   label: string;
@@ -10,7 +18,6 @@ interface Option {
 }
 
 interface StudentFiltersProps {
-  styles?: any;
   selectedDateStr: string;
 
   classModalVisible: boolean;
@@ -28,8 +35,9 @@ interface StudentFiltersProps {
   selectedSection: string;
   setSelectedSection: (v: string) => void;
 
-  role: string;  // role passed as string
+  role: string;
   onDatePress: () => void;
+  styles?: any;
 }
 
 export default function StudentFilters({
@@ -45,7 +53,7 @@ export default function StudentFilters({
   selectedSection,
   setSelectedSection,
   onDatePress,
-  role,  // just destructure the role
+  role,
 }: StudentFiltersProps) {
   const themeState = useContext(ThemeContext);
   if (!themeState) return null;
@@ -55,75 +63,104 @@ export default function StudentFilters({
 
   const styles = getFilterStyles(isDark, theme);
 
-  // Only admin can change class/section
-  const canChangeClassOrSection = role === "ADMIN" || role === "STAFF_CHAT";
+  const canChangeClassOrSection =
+    role === "ADMIN" || role === "STAFF_CHAT";
 
   return (
     <View style={styles.filterContainer}>
-      {/* Class Selector */}
+      {/* Class */}
       <TouchableOpacity
-        style={[styles.classDropdownWrapper, !canChangeClassOrSection && { opacity: 0.6 }]}
+        style={[
+          styles.classDropdownWrapper,
+          !canChangeClassOrSection && { opacity: 0.6 },
+        ]}
         disabled={!canChangeClassOrSection}
-        onPress={() => canChangeClassOrSection && setClassModalVisible(true)}
+        onPress={() =>
+          canChangeClassOrSection && setClassModalVisible(true)
+        }
       >
         <Text style={styles.selectedText}>
-          {classOptions.find(c => c.value === selectedClass)?.label || "Select Class"}
+          {classOptions.find((c) => c.value === selectedClass)?.label ??
+            "Select Class"}
         </Text>
       </TouchableOpacity>
 
-      {/* Section Selector */}
+      {/* Section */}
       <TouchableOpacity
-        style={[styles.classDropdownWrapper, !canChangeClassOrSection && { opacity: 0.6 }]}
+        style={[
+          styles.classDropdownWrapper,
+          !canChangeClassOrSection && { opacity: 0.6 },
+        ]}
         disabled={!canChangeClassOrSection}
-        onPress={() => canChangeClassOrSection && setSectionModalVisible(true)}
+        onPress={() =>
+          canChangeClassOrSection && setSectionModalVisible(true)
+        }
       >
         <Text style={styles.selectedText}>
-          {sectionOptions.find(s => s.value === selectedSection)?.label || "Select Section"}
+          {sectionOptions.find((s) => s.value === selectedSection)?.label ??
+            "Select Section"}
         </Text>
       </TouchableOpacity>
 
-      {/* Date Picker */}
-      <TouchableOpacity style={styles.datePickerContainer} onPress={onDatePress}>
+      {/* Date */}
+      <TouchableOpacity
+        style={styles.datePickerContainer}
+        onPress={onDatePress}
+      >
         <Text style={styles.dateText}>
           {selectedDateStr || "Select Date"}
         </Text>
-        {selectedDateStr !== "" && (
-          <Ionicons
-            name="calendar-outline"
-            size={18}
-            color={isDark ? "#E5E7EB" : "#666"}
-          />
-        )}
+
+        <Ionicons
+          name="calendar-outline"
+          size={18}
+          color={isDark ? "#E5E7EB" : "#666"}
+        />
       </TouchableOpacity>
 
-      {/* Class Modal */}
+      {/* CLASS MODAL */}
       {canChangeClassOrSection && (
-        <Modal transparent visible={classModalVisible} animationType="fade">
-          <TouchableOpacity
-            style={styles.modalContainer}
-            activeOpacity={1}
-            onPress={() => setClassModalVisible(false)}
-          >
-            <View style={styles.modalBox}>
-              <Text style={styles.modalTitle}>Select Class</Text>
-              {classOptions.map(item => (
-                <TouchableOpacity
-                  key={item.value}
-                  style={styles.modalItem}
-                  onPress={() => {
-                    setSelectedClass(item.value);
-                    setClassModalVisible(false);
-                  }}
-                >
-                  <Text style={styles.modalItemText}>{item.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </TouchableOpacity>
-        </Modal>
+       <Modal
+       transparent
+       visible={classModalVisible}
+       animationType="fade"
+     >
+       <View style={styles.modalContainer}>
+         <View style={styles.modalBox}>
+           <Text style={styles.modalTitle}>Select Class</Text>
+     
+           <FlatList
+             data={classOptions}
+             keyExtractor={(item) => item.value}
+             keyboardShouldPersistTaps="handled"
+             showsVerticalScrollIndicator={false}
+             renderItem={({ item }) => (
+               <TouchableOpacity
+                 style={styles.modalItem}
+                 onPress={() => {
+                   setSelectedClass(item.value);
+                   setClassModalVisible(false);
+                 }}
+               >
+                 <Text style={styles.modalItemText}>{item.label}</Text>
+               </TouchableOpacity>
+             )}
+           />
+     
+           <TouchableOpacity
+             style={styles.closeBtn}
+             onPress={() => setClassModalVisible(false)}
+           >
+             <Text style={{ color: "#2563EB", fontWeight: "600" }}>
+               Close
+             </Text>
+           </TouchableOpacity>
+         </View>
+       </View>
+     </Modal>
       )}
 
-      {/* Section Modal */}
+      {/* SECTION MODAL */}
       {canChangeClassOrSection && (
         <Modal transparent visible={sectionModalVisible} animationType="fade">
           <TouchableOpacity
@@ -131,30 +168,48 @@ export default function StudentFilters({
             activeOpacity={1}
             onPress={() => setSectionModalVisible(false)}
           >
-            <View style={styles.modalBox}>
+            <TouchableOpacity
+              activeOpacity={1}
+              style={styles.modalBox}
+            >
               <Text style={styles.modalTitle}>Select Section</Text>
-              {sectionOptions.map(item => (
-                <TouchableOpacity
-                  key={item.value}
-                  style={styles.modalItem}
-                  onPress={() => {
-                    setSelectedSection(item.value);
-                    setSectionModalVisible(false);
-                  }}
-                >
-                  <Text style={styles.modalItemText}>{item.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 8 }}
+              >
+                {sectionOptions.map((item) => (
+                  <TouchableOpacity
+                    key={item.value}
+                    style={[
+                      styles.modalItem,
+                      selectedSection === item.value &&
+                        styles.selectedItem,
+                    ]}
+                    onPress={() => {
+                      setSelectedSection(item.value);
+                      setSectionModalVisible(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.modalItemText,
+                        selectedSection === item.value &&
+                          styles.selectedItemText,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </TouchableOpacity>
           </TouchableOpacity>
         </Modal>
       )}
     </View>
   );
 }
-
-
-/* ================= STYLES ================= */
 
 const getFilterStyles = (isDark: boolean, theme: Theme) =>
   StyleSheet.create({
@@ -174,8 +229,8 @@ const getFilterStyles = (isDark: boolean, theme: Theme) =>
       paddingHorizontal: 12,
       borderRadius: 10,
       borderWidth: 1,
-      borderColor: isDark ? "#2d4044" : "#D1D5DB",
-      backgroundColor: isDark ? "#02061" : "#F9FAFB",
+      borderColor: isDark ? "#334155" : "#D1D5DB",
+      backgroundColor: isDark ? "#020617" : "#F9FAFB",
       justifyContent: "center",
     },
 
@@ -203,21 +258,6 @@ const getFilterStyles = (isDark: boolean, theme: Theme) =>
       fontWeight: "500",
     },
 
-    modalContainer: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.4)",
-      justifyContent: "center",
-      paddingHorizontal: 20,
-    },
-
-    modalBox: {
-      backgroundColor: theme.background,
-      borderRadius: 14,
-      paddingVertical: 16,
-      paddingHorizontal: 14,
-      // maxHeight: ",
-    },
-
     modalTitle: {
       fontSize: 16,
       fontWeight: "600",
@@ -225,14 +265,43 @@ const getFilterStyles = (isDark: boolean, theme: Theme) =>
       color: isDark ? "#F8FAFC" : "#111827",
     },
 
-    modalItem: {
-      paddingVertical: 12,
-      paddingHorizontal: 10,
-      borderRadius: 8,
+
+    selectedItem: {
+      backgroundColor: isDark ? "#1E293B" : "#E0F2FE",
     },
 
     modalItemText: {
-      fontSize: 14,
+      fontSize: 15,
       color: isDark ? "#E5E7EB" : "#1F2937",
+    },
+
+    selectedItemText: {
+      fontWeight: "700",
+      color: "#2563EB",
+    },
+    modalContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "rgba(0,0,0,0.5)",
+    },
+    
+    modalBox: {
+      width: "90%",
+      maxHeight: "75%",
+      backgroundColor: theme.background,
+      borderRadius: 16,
+      padding: 16,
+    },
+    
+    modalItem: {
+      paddingVertical: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: isDark ? "#334155" : "#E5E7EB",
+    },
+    
+    closeBtn: {
+      marginTop: 12,
+      alignItems: "center",
     },
   });

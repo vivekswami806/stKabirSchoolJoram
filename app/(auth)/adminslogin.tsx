@@ -28,7 +28,7 @@ import {
   View,
 } from "react-native";
 import { useDispatch } from "react-redux";
-import { handleLogin, validateLoginForm } from "./loginHandler";
+import { handleLogin, validateLoginForm } from "../../utils/loginHandler";
 
 export default function Login() {
   const dispatch = useDispatch();

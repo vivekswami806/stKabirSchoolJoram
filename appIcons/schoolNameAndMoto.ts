@@ -1,3 +1,3 @@
-export const schoolName = "DEHLI PUBLIC SCHOOL";
-export const schoolMoto = "अप्पो दीपो भव";
-export const schoolMoto2 = "लोकक्षेम";
+export const schoolName = "St. KABIR SEMINARY JORAM(SIMDEGA)";
+export const schoolMoto = "अमृत तु विद्या";
+export const schoolMoto2 = "";

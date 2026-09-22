@@ -4,14 +4,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { Buffer } from "buffer";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import Skeleton from "./Skeleton";
 
@@ -56,7 +56,7 @@ export default function BannerHeaderCompSchool() {
           }
       );
       
-      console.log("---getTenantProfile |", res.data);
+      // console.log("---getTenantProfile |", res.data);
       
       const data = res.data;
       

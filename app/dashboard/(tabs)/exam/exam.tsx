@@ -1,5 +1,7 @@
+import { RootState } from '@/action/store';
 import { ThemeContext } from '@/action/theme/ThemeContext';
 import { Theme } from '@/action/theme/themeReducer';
+import Skeleton from '@/components/Skeleton';
 import { API_BASE_URL } from '@/config';
 import { getDeviceId } from '@/helper/getDeviceId';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,18 +11,66 @@ import { Buffer } from 'buffer';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
+    Animated,
     Dimensions,
     FlatList,
     Platform,
+    RefreshControl,
     SafeAreaView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
-import { ToastService } from "react-native-toastier";
-import { ResultsResponse, StudentResult } from './api';
+import { Dropdown } from 'react-native-element-dropdown';
+import { ToastService } from 'react-native-toastier';
+import { useSelector } from 'react-redux';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface SubjectMark {
+    subjectName: string;
+    subjectCode: string;
+    marksObtained: number;
+    totalMarks: number;
+    passingMarks: number;
+    status: 'PASS' | 'FAIL';
+    examTerm: string;
+    optional: boolean;
+    hasPractical: boolean;
+    theoryMarksObtained?: number;
+    theoryMaxMarks?: number;
+    theoryPassingMarks?: number;
+    theoryStatus?: 'PASS' | 'FAIL';
+    practicalMarksObtained?: number;
+    practicalMaxMarks?: number;
+    practicalPassingMarks?: number;
+    practicalStatus?: 'PASS' | 'FAIL';
+}
+
+interface StudentResult {
+    studentId: string;
+    admissionNumber: string;
+    studentName: string;
+    className: string;
+    section: string;
+    rollNumber: string;
+    examTerm: string;
+    totalMarksObtained: number;
+    totalMaxMarks: number;
+    percentage: number;
+    cgpa: number;
+    division: string;
+    classRank: number;
+    status: 'PASS' | 'FAIL';
+    academicYear: string;
+    subjectMarks: SubjectMark[];
+}
+
+interface ResultsResponse {
+    result: StudentResult;
+    success: boolean;
+}
 
 const { width } = Dimensions.get('window');
 
@@ -30,77 +80,145 @@ interface TabOption {
     icon: string;
 }
 
+// ─── Auth Headers Helper ───────────────────────────────────────────────────────
+
+const getAuthHeaders = async () => {
+    const [token, encodedTenant, deviceId] = await Promise.all([
+        AsyncStorage.getItem('auth_token'),
+        AsyncStorage.getItem('auth_tenant'),
+        getDeviceId(),
+    ]);
+    if (!token || !encodedTenant) throw new Error('Missing auth credentials');
+    const tenantId = Buffer.from(encodedTenant, 'base64').toString('utf-8');
+    return {
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'X-Tenant-ID': tenantId,
+            'X-Device-ID': deviceId,
+        },
+    };
+};
+
+// ─── Main Exam Screen ─────────────────────────────────────────────────────────
+
 const ExamUI: React.FC = () => {
     const router = useRouter();
     const themeState = useContext(ThemeContext);
-    const [activeTab, setActiveTab] = useState<'schedule' | 'results' | 'analytics'>('results');
+    const { userDetail } = useSelector((state: RootState) => state.user);
+
+    const [activeTab, setActiveTab] = useState<'results'>('results');
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [resultsData, setResultsData] = useState<StudentResult | null>(null);
-    const [classResults, setClassResults] = useState<ResultsResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [animationValue] = useState(new Animated.Value(0));
+
+    // Filter states
+    const [selectedExamTerm, setSelectedExamTerm] = useState('FIRST_TERM');
+    const [examTerms] = useState([
+        { label: 'First Term', value: 'FIRST_TERM' },
+        { label: 'Mid Term', value: 'MID_TERM' },
+        { label: 'Final Term', value: 'FINAL_TERM' },
+    ]);
+
+    const [selectedAcademicYear, setSelectedAcademicYear] = useState('2025-26');
+    const [academicYears] = useState(() => {
+        const currentYear = new Date().getFullYear();
+        const years = [];
+        for (let i = currentYear - 2; i <= currentYear + 2; i++) {
+            years.push({
+                label: `${i}-${(i + 1).toString().slice(-2)}`,
+                value: `${i}-${(i + 1).toString().slice(-2)}`,
+            });
+        }
+        return years;
+    });
 
     if (!themeState) return null;
     const { theme } = themeState;
     const styles = getStyles(theme);
 
-    const tabs: TabOption[] = [
-        { id: 'schedule', label: 'Schedule', icon: 'calendar' },
-        { id: 'results', label: 'My Results', icon: 'trophy' },
-        { id: 'analytics', label: 'Analytics', icon: 'stats-chart' },
-    ];
-
+    // Fetch results data
     const fetchData = useCallback(
-        async (isRefresh = false) => {
-          if (loading) return;
-          isRefresh ? setRefreshing(true) : setLoading(true);
-    
-          try {
-            const [token, encodedTenant, deviceId] = await Promise.all([
-              AsyncStorage.getItem('auth_token'),
-              AsyncStorage.getItem('auth_tenant'),
-              getDeviceId(),
-            ]);
-    
-            if (!token || !encodedTenant) throw new Error('Auth missing');
-            console.log("---datacalled");
-            
-            const tenantId = Buffer.from(encodedTenant, 'base64').toString('utf-8');
-            const { data } = await axios.get(`${API_BASE_URL}results/V2/class?className=1&section=A&examTerm=FIRST_TERM&academicYear=2025-26`, {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'X-Tenant-ID': tenantId,
-                'X-Device-ID': deviceId,
-              },
-            });
-            console.log("---Data|result", data);
-            
-            setClassResults(data);
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to fetch data';
-            setError(errorMessage);
-            setLoading(false);
-            console.log("eerr|", err);
-            
-            ToastService.show({
-                type: 'danger',
-                message: errorMessage,
-                duration: 3000,
-            });
-        } finally {
-            setLoading(false);
-        }
-    },[]);
+        async (term: string, year: string, isRefresh = false) => {
+            if (loading && !isRefresh) return;
+            isRefresh ? setRefreshing(true) : setLoading(true);
 
+            try {
+                const [token, encodedTenant, studentId, deviceId] = await Promise.all([
+                    AsyncStorage.getItem('auth_token'),
+                    AsyncStorage.getItem('auth_tenant'),
+                    AsyncStorage.getItem('auth_login_id'),
+                    getDeviceId(),
+                ]);
+
+                if (!token || !encodedTenant) throw new Error('Auth missing');
+
+                const tenantId = Buffer.from(encodedTenant, 'base64').toString('utf-8');
+
+                const { data } = await axios.get<ResultsResponse>(
+                    `${API_BASE_URL}results/term/by-student-id?studentId=${studentId}&examTerm=${term}&academicYear=${year}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            'X-Tenant-ID': tenantId,
+                            'X-Device-ID': deviceId,
+                        },
+                    }
+                );
+                // console.log("---data|", data.result,);
+                // console.log("---data|data.result.subjectMarks[1]", data.result.subjectMarks[1]);
+
+                if (data.success && data.result) {
+                    setResultsData(data.result);
+                    setError(null);
+
+                    // Trigger animation
+                    Animated.timing(animationValue, {
+                        toValue: 1,
+                        duration: 600,
+                        useNativeDriver: false,
+                    }).start();
+                } else {
+                    setResultsData(null);
+                    ToastService.show({
+                        type: 'info',
+                        message: 'No results found for the selected filters.',
+                        duration: 3000,
+                    });
+                }
+            } catch (err: any) {
+                const errorMsg = err?.response?.data?.message || err.message || 'Failed to fetch results';
+                setError(errorMsg);
+                setResultsData(null);
+
+                if (!isRefresh) {
+                    ToastService.show({
+                        type: 'danger',
+                        message: errorMsg,
+                        duration: 3000,
+                    });
+                }
+            } finally {
+                setLoading(false);
+                setRefreshing(false);
+            }
+        },
+        [loading, animationValue]
+    );
+
+    // Initial fetch on mount and when filters change
     useEffect(() => {
-        // fetchData();
+        if (userDetail?.id) {
+            fetchData(selectedExamTerm, selectedAcademicYear);
+        }
     }, []);
 
-    const onRefresh = async () => {
-        setRefreshing(true);
-        // await fetchData();
-        setRefreshing(false);
-    };
+    const onRefresh = useCallback(() => {
+        if (userDetail?.id) {
+            fetchData(selectedExamTerm, selectedAcademicYear, true);
+        }
+    }, []);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -110,348 +228,228 @@ const ExamUI: React.FC = () => {
                     <Ionicons
                         name="arrow-back"
                         size={26}
-                        color={theme.mode === 'dark' ? '#E5E7EB' : '#000'}
+                        color={theme.mode === 'dark' ? theme.text : theme.text}
                     />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Examination</Text>
-                <TouchableOpacity></TouchableOpacity>
-                {/* <TouchableOpacity onPress={() => router.push('/dashboard/(tabs)/exam/Examdetails')}>
+                <Text style={styles.headerTitle}>Exam Results</Text>
+                <TouchableOpacity onPress={onRefresh} disabled={loading || refreshing}>
                     <Ionicons
-                        name="settings-outline"
-                        size={26}
-                        color={theme.mode === 'dark' ? '#E5E7EB' : '#000'}
+                        name="refresh"
+                        size={24}
+                        color={theme.mode === 'dark' ? theme.text : theme.text}
+                        style={{ opacity: loading || refreshing ? 0.5 : 1 }}
                     />
-                </TouchableOpacity> */}
+                </TouchableOpacity>
             </View>
 
-            {/* Tab Navigation */}
-            <View style={styles.tabContainer}>
-                {tabs.map((tab) => (
-                    <TouchableOpacity
-                        key={tab.id}
-                        style={[
-                            styles.tab,
-                            activeTab === tab.id && styles.activeTab,
-                        ]}
-                        onPress={() => setActiveTab(tab.id)}
-                    >
-                        <Ionicons
-                            name={tab.icon as any}
-                            size={20}
-                            color={activeTab === tab.id ? '#6366f1' : '#9CA3AF'}
-                            style={styles.tabIcon}
-                        />
-                        <Text
-                            style={[
-                                styles.tabText,
-                                activeTab === tab.id && styles.activeTabText,
-                            ]}
-                        >
-                            {tab.label}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
+            {/* Filters */}
+            {/* Filters */}
+            <View style={styles.filterContainer}>
+
+                {/* Exam Term Dropdown */}
+                <View style={styles.dropdownWrapper}>
+                    <Dropdown
+                        style={styles.dropdown}
+                        data={examTerms}
+                        labelField="label"
+                        valueField="value"
+                        value={selectedExamTerm}
+                        placeholder="Select Term"
+                        onChange={(item) => {
+                            setSelectedExamTerm(item.value);
+                            fetchData(item.value, selectedAcademicYear);
+                        }}
+                        renderLeftIcon={() => (
+                            <Ionicons
+                                name="calendar"
+                                size={18}
+                                color={theme.primary}
+                                style={{ marginRight: 8 }}
+                            />
+                        )}
+                    />
+                </View>
+
+                {/* Academic Year Dropdown */}
+                <View style={styles.dropdownWrapper}>
+                    <Dropdown
+                        style={styles.dropdown}
+                        data={academicYears}
+                        labelField="label"
+                        valueField="value"
+                        value={selectedAcademicYear}
+                        placeholder="Select Year"
+                        onChange={(item) => {
+                            setSelectedAcademicYear(item.value);
+                            fetchData(selectedExamTerm, item.value);
+                        }}
+                        renderLeftIcon={() => (
+                            <Ionicons
+                                name="school"
+                                size={18}
+                                color={theme.primary}
+                                style={{ marginRight: 8 }}
+                            />
+                        )}
+                    />
+                </View>
+
             </View>
 
             {/* Content */}
             {loading ? (
-                <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color="#6366f1" />
-                    <Text style={styles.loadingText}>Exam schedule will be announced soon....</Text>
-                </View>
+                // <View style={styles.centerContainer}>
+                    <Skeleton isDark={theme.mode === "dark"}/>
+                    // <Text style={styles.loadingText}>Loading Your Results...</Text>
+                /* </View> */
             ) : error ? (
                 <View style={styles.centerContainer}>
-                    <Ionicons name="alert-circle" size={48} color="#ef4444" />
+                    <Ionicons name="alert-circle" size={64} color="#ef4444" />
                     <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity style={styles.retryButton} >
+                    <TouchableOpacity style={styles.retryButton} onPress={() => onRefresh()}>
+                        <Ionicons name="reload" size={20} color="#fff" />
                         <Text style={styles.retryButtonText}>Retry</Text>
                     </TouchableOpacity>
                 </View>
             ) : (
-                <Text style={styles.loadingText}>Exam schedule will be announced soon...</Text>
-                // <FlatList
-                //     data={[{ id: 'content' }]}
-                //     keyExtractor={(item) => item.id}
-                //     refreshControl={
-                //         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                //     }
-                //     renderItem={() => (
-                //         <>
-                //             {activeTab === 'schedule' && resultsData && (
-                //                 <ExamScheduleContent data={resultsData} styles={styles} />
-                //             )}
-                //             {activeTab === 'results' && resultsData && (
-                //                 <ResultsContent data={resultsData} styles={styles} />
-                //             )}
-                //             {activeTab === 'analytics' && classResults && (
-                //                 <AnalyticsContent data={classResults} styles={styles} />
-                //             )}
-                //         </>
-                //     )}
-                //     ListEmptyComponent={
-                //         <View style={styles.emptyContainer}>
-                //           <Text style={styles.emptyText}>No students found</Text>
-                //         </View>
-                //       }
-
-                // />
+                <FlatList
+                    data={[{ id: 'content' }]}
+                    keyExtractor={(item) => item.id}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor={theme.primary}
+                        />
+                    }
+                    renderItem={() => (
+                        <>
+                            {resultsData ? (
+                                <ResultsContent data={resultsData} styles={styles} />
+                            ) : (
+                                <View style={styles.emptyContainer}>
+                                    <Ionicons name="information-circle-outline" size={64} color="#9CA3AF" />
+                                    <Text style={styles.emptyText}>No results available</Text>
+                                    <Text style={styles.emptySubtext}>Select different filters to try again</Text>
+                                </View>
+                            )}
+                        </>
+                    )}
+                    ListEmptyComponent={null}
+                />
             )}
         </SafeAreaView>
     );
 };
 
-// Schedule Content Component
-const ExamScheduleContent: React.FC<{
-    data: StudentResult;
-    styles: ReturnType<typeof getStyles>;
-}> = ({ data, styles }) => {
-    const items = data.subjectMarks.map((subject, idx) => ({
-        id: `${idx}`,
-        subjectName: subject.subjectName,
-        totalMarks: subject.totalMarks,
-        passingMarks: subject.passingMarks,
-        date: new Date().toLocaleDateString(),
-        time: '09:00 AM - 12:00 PM',
-    }));
+// ─── Loader Component ─────────────────────────────────────────────────────────
+
+const LottieLoader: React.FC = () => {
+    const [animationValue] = useState(new Animated.Value(0));
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(animationValue, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: false,
+                }),
+                Animated.timing(animationValue, {
+                    toValue: 0,
+                    duration: 1000,
+                    useNativeDriver: false,
+                }),
+            ])
+        ).start();
+    }, []);
+
+    const scale = animationValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.8, 1.2],
+    });
 
     return (
-        <View style={styles.contentContainer}>
-            <Text style={styles.sectionTitle}>Upcoming Exams</Text>
-            <FlatList
-                scrollEnabled={false}
-                data={items}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <ExamCard exam={item} styles={styles} />
-                )}
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="calendar-outline" size={48} color="#9CA3AF" />
-                        <Text style={styles.emptyText}>No upcoming exams</Text>
-                    </View>
-                }
-            />
-        </View>
+        <Animated.View style={{ transform: [{ scale }] }}>
+            <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#6366f1', opacity: 0.3 }} />
+        </Animated.View>
     );
 };
 
-// Results Content Component
-const ResultsContent: React.FC<{
-    data: StudentResult;
+// ─── Score Circle Component ───────────────────────────────────────────────────
+
+const ScoreCircle: React.FC<{
+    percentage: number;
+    status: 'PASS' | 'FAIL';
     styles: ReturnType<typeof getStyles>;
-}> = ({ data, styles }) => {
+}> = ({ percentage, status, styles }) => {
+    const statusColor = status === 'PASS' ? '#10b981' : '#ef4444';
+
     return (
-        <View style={styles.contentContainer}>
-            {/* Overall Card */}
-            <View style={styles.overallCard}>
-                <View style={styles.overallInfo}>
-                    <Text style={styles.overallLabel}>Overall Score</Text>
-                    <Text style={styles.overallScore}>
-                        {data.totalMarksObtained}/{data.totalMaxMarks}
-                    </Text>
-                    <Text style={styles.overallPercentage}>
-                        {data.percentage.toFixed(1)}%
-                    </Text>
-                </View>
-                <View style={styles.overallCircle}>
-                    <View style={styles.circleProgress}>
-                        <Text style={styles.circlePercentage}>
-                            {Math.round(data.percentage)}%
-                        </Text>
-                    </View>
-                </View>
-            </View>
-
-            {/* Stats Grid */}
-            <View style={styles.statsGrid}>
-                <StatCard
-                    icon="medal"
-                    label="Division"
-                    value={data.division}
-                    color="#6366f1"
-                    styles={styles}
-                />
-                <StatCard
-                    icon="ranking"
-                    label="Class Rank"
-                    value={`#${data.classRank}`}
-                    color="#06b6d4"
-                    styles={styles}
-                />
-                <StatCard
-                    icon="star"
-                    label="CGPA"
-                    value={data.cgpa.toFixed(2)}
-                    color="#f59e0b"
-                    styles={styles}
-                />
-                <StatCard
-                    icon="checkmark-circle"
-                    label="Status"
-                    value={data.status}
-                    color={data.status === 'PASS' ? '#10b981' : '#ef4444'}
-                    styles={styles}
-                />
-            </View>
-
-            {/* Subject Marks */}
-            <Text style={styles.sectionTitle}>Subject Scores</Text>
-            <FlatList
-                scrollEnabled={false}
-                data={data.subjectMarks}
-                keyExtractor={(item) => item.subjectCode}
-                renderItem={({ item }) => (
-                    <SubjectCard subject={item} styles={styles} />
-                )}
-            />
-        </View>
-    );
-};
-
-// Analytics Content Component
-const AnalyticsContent: React.FC<{
-    data: any;
-    styles: ReturnType<typeof getStyles>;
-}> = ({ data, styles }) => {
-    return (
-        <View style={styles.contentContainer}>
-            <Text style={styles.sectionTitle}>Class Performance</Text>
-            
-            {data.results && data.results.length > 0 && (
-                <>
-                    {/* Performance Distribution */}
-                    <View style={styles.analyticsCard}>
-                        <Text style={styles.analyticsTitle}>Performance Distribution</Text>
-                        <View style={styles.performanceChartContainer}>
-                            {[
-                                { range: 'Below 40%', count: 2, color: '#ef4444' },
-                                { range: '40-60%', count: 5, color: '#f97316' },
-                                { range: '60-80%', count: 8, color: '#fbbf24' },
-                                { range: 'Above 80%', count: 3, color: '#10b981' },
-                            ].map((item, idx) => (
-                                <View key={idx} style={styles.performanceBar}>
-                                    <View style={styles.performanceBarLabel}>
-                                        <Text style={styles.performanceLabel}>{item.range}</Text>
-                                    </View>
-                                    <View
-                                        style={[
-                                            styles.performanceBarFill,
-                                            {
-                                                width: `${(item.count / 18) * 100}%`,
-                                                backgroundColor: item.color,
-                                            },
-                                        ]}
-                                    />
-                                </View>
-                            ))}
-                        </View>
-                    </View>
-
-                    {/* Top Performers */}
-                    <Text style={styles.sectionTitle}>Top Performers</Text>
-                    <FlatList
-                        scrollEnabled={false}
-                        data={data.results.slice(0, 5)}
-                        keyExtractor={(item) => item.studentId}
-                        renderItem={({ item, index }) => (
-                            <View style={styles.performerCard}>
-                                <View style={styles.rankCircle}>
-                                    <Text style={styles.rankText}>#{index + 1}</Text>
-                                </View>
-                                <View style={styles.performerInfo}>
-                                    <Text style={styles.performerName}>{item.studentName}</Text>
-                                    <Text style={styles.performerScore}>
-                                        {item.percentage.toFixed(1)}%
-                                    </Text>
-                                </View>
-                                <View style={styles.performerBadge}>
-                                    <Text style={styles.badgeText}>
-                                        {item.totalMarksObtained}/{item.totalMaxMarks}
-                                    </Text>
-                                </View>
-                            </View>
-                        )}
-                    />
-                </>
-            )}
-        </View>
-    );
-};
-
-// Exam Card Component
-const ExamCard: React.FC<{
-    exam: any;
-    styles: ReturnType<typeof getStyles>;
-}> = ({ exam, styles }) => {
-    return (
-        <View style={styles.card}>
-            <View style={styles.cardHeader}>
-                <View style={styles.subjectBadge}>
-                    <Text style={styles.subjectBadgeText}>
-                        {exam.subjectName.slice(0, 3)}
-                    </Text>
-                </View>
-                <Text style={styles.cardTitle}>{exam.subjectName}</Text>
-            </View>
-
-            <View style={styles.cardInfo}>
-                <InfoItem
-                    icon="document-text"
-                    label="Total Marks"
-                    value={exam.totalMarks.toString()}
-                    styles={styles}
-                />
-                <InfoItem
-                    icon="checkmark-circle"
-                    label="Pass Marks"
-                    value={exam.passingMarks.toString()}
-                    styles={styles}
-                />
-            </View>
-
-            <View style={styles.cardInfo}>
-                <InfoItem
-                    icon="calendar"
-                    label={exam.date}
-                    value=""
-                    styles={styles}
-                />
-                <InfoItem
-                    icon="time"
-                    label={exam.time}
-                    value=""
-                    styles={styles}
-                />
+        <View style={styles.scoreCircleContainer}>
+            <View style={[styles.scoreCircle, { borderColor: statusColor, borderWidth: 3 }]}>
+                <Text style={styles.scorePercentage}>{Math.round(percentage)}%</Text>
+                <Text style={[styles.scoreStatus, { color: statusColor }]}>{status}</Text>
             </View>
         </View>
     );
 };
 
-// Subject Card Component
-const SubjectCard: React.FC<{
-    subject: any;
+// ─── Stat Card Component ──────────────────────────────────────────────────────
+
+const EnhancedStatCard: React.FC<{
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    value: string | number;
+    color: string;
+    styles: ReturnType<typeof getStyles>;
+}> = ({ icon, label, value, color, styles }) => (
+    <View style={[styles.enhancedStatCard, { borderLeftColor: color, borderLeftWidth: 4 }]}>
+        <View style={[styles.statIconContainer, { backgroundColor: color + '15' }]}>
+            <Ionicons name={icon} size={24} color={color} />
+        </View>
+        <View style={styles.statContent}>
+            <Text style={styles.statLabel}>{label}</Text>
+            <Text style={[styles.statValueText, { color }]}>{value}</Text>
+        </View>
+    </View>
+);
+
+// ─── Subject Card Component ───────────────────────────────────────────────────
+
+const EnhancedSubjectCard: React.FC<{
+    subject: SubjectMark;
     styles: ReturnType<typeof getStyles>;
 }> = ({ subject, styles }) => {
     const percentage = (subject.marksObtained / subject.totalMarks) * 100;
-    const isPass = subject.status === 'PASS';
+    const barColor = subject.status === 'PASS' ? '#06b6d4' : '#f97316';
 
     return (
-        <View style={styles.card}>
+        <View style={styles.enhancedSubjectCard}>
+            {/* Header Row */}
             <View style={styles.subjectCardHeader}>
-                <View>
-                    <Text style={styles.subjectName}>{subject.subjectName}</Text>
-                    <Text style={styles.subjectCode}>{subject.subjectCode}</Text>
+                <View style={styles.subjectTitleSection}>
+                    <Text style={styles.subjectCardTitle}>{subject.subjectName}</Text>
+                    {subject.optional && (
+                        <View style={styles.optionalBadge}>
+                            <Text style={styles.optionalBadgeText}>Optional</Text>
+                        </View>
+                    )}
                 </View>
                 <View
                     style={[
                         styles.statusBadge,
-                        { backgroundColor: isPass ? '#10b98133' : '#ef444433' },
+                        {
+                            backgroundColor: subject.status === 'PASS' ? '#ecfdf5' : '#fef2f2',
+                        },
                     ]}
                 >
                     <Text
                         style={[
                             styles.statusBadgeText,
-                            { color: isPass ? '#10b981' : '#ef4444' },
+                            {
+                                color: subject.status === 'PASS' ? '#10b981' : '#ef4444',
+                            },
                         ]}
                     >
                         {subject.status}
@@ -459,456 +457,914 @@ const SubjectCard: React.FC<{
                 </View>
             </View>
 
-            <View style={styles.scoreBar}>
-                <View style={styles.scoreInfo}>
-                    <Text style={styles.scoreText}>
-                        {subject.marksObtained}/{subject.totalMarks}
-                    </Text>
-                    <Text style={styles.scorePercentage}>{percentage.toFixed(1)}%</Text>
-                </View>
+            {/* Progress Bar */}
+            <View style={styles.progressBarContainer}>
                 <View style={styles.progressBar}>
                     <View
                         style={[
-                            styles.progressFill,
+                            styles.progressBarFill,
                             {
                                 width: `${percentage}%`,
-                                backgroundColor: isPass ? '#10b981' : '#ef4444',
+                                backgroundColor: barColor,
                             },
                         ]}
                     />
                 </View>
+                <Text style={styles.progressText}>{Math.round(percentage)}%</Text>
             </View>
 
-            {subject.optional && (
-                <Text style={styles.optionalLabel}>Optional Subject</Text>
+            {/* Marks Grid */}
+            <View style={styles.marksGrid}>
+                <View style={styles.markItem}>
+                    <Text style={styles.markLabel}>Obtained</Text>
+                    <Text style={styles.markValue}>{subject.marksObtained}</Text>
+                </View>
+                <View style={styles.markDivider} />
+                <View style={styles.markItem}>
+                    <Text style={styles.markLabel}>Total</Text>
+                    <Text style={styles.markValue}>{subject.totalMarks}</Text>
+                </View>
+                <View style={styles.markDivider} />
+                <View style={styles.markItem}>
+                    <Text style={styles.markLabel}>Passing</Text>
+                    <Text style={styles.markValue}>{subject.passingMarks}</Text>
+                </View>
+            </View>
+
+            {/* Theory & Practical (if applicable) */}
+            {subject.hasPractical && (
+                <View style={styles.practicalContainer}>
+                    <View style={styles.practicalSection}>
+                        <Text style={styles.practicalTitle}>Theory</Text>
+                        <View style={styles.practicalDetails}>
+                            <Text style={styles.practicalMarks}>
+                                {subject.theoryMarksObtained ?? 0}/{subject.theoryMaxMarks ?? 0}
+                            </Text>
+                            <View
+                                style={[
+                                    styles.practicalStatus,
+                                    {
+                                        backgroundColor:
+                                            subject.theoryStatus === 'PASS' ? '#ecfdf5' : '#fef2f2',
+                                    },
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.practicalStatusText,
+                                        {
+                                            color:
+                                                subject.theoryStatus === 'PASS' ? '#10b981' : '#ef4444',
+                                        },
+                                    ]}
+                                >
+                                    {subject.theoryStatus ?? 'N/A'}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                    <View style={styles.practicalSection}>
+                        <Text style={styles.practicalTitle}>Practical</Text>
+                        <View style={styles.practicalDetails}>
+                            <Text style={styles.practicalMarks}>
+                                {subject.practicalMarksObtained ?? 0}/{subject.practicalMaxMarks ?? 0}
+                            </Text>
+                            <View
+                                style={[
+                                    styles.practicalStatus,
+                                    {
+                                        backgroundColor:
+                                            subject.practicalStatus === 'PASS' ? '#ecfdf5' : '#fef2f2',
+                                    },
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.practicalStatusText,
+                                        {
+                                            color:
+                                                subject.practicalStatus === 'PASS' ? '#10b981' : '#ef4444',
+                                        },
+                                    ]}
+                                >
+                                    {subject.practicalStatus ?? 'N/A'}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
             )}
         </View>
     );
 };
 
-// Stat Card Component
-const StatCard: React.FC<{
-    icon: string;
-    label: string;
-    value: string;
-    color: string;
+// ─── Results Content Component ────────────────────────────────────────────────
+
+const ResultsContent: React.FC<{
+    data: StudentResult;
     styles: ReturnType<typeof getStyles>;
-}> = ({ icon, label, value, color, styles }) => {
+}> = ({ data, styles }) => {
+    const themeState = useContext(ThemeContext);
+    if (!themeState) return null;
+    const { theme } = themeState;
+    const failedSubjects = data.subjectMarks.filter((s) => s.status === 'FAIL').length;
+    const passedSubjects = data.subjectMarks.length - failedSubjects;
+
     return (
-        <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
-                <Ionicons name={icon as any} size={24} color={color} />
+        <View style={styles.contentContainer}>
+            {/* Student Info Card */}
+            <View style={styles.studentInfoCard}>
+                <View style={styles.studentInfo}>
+                    <Text style={styles.studentName}>{data.studentName}</Text>
+                    {/* <Text style={styles.studentName}>{userDetail.studentFatherName}</Text> */}
+                    <Text style={styles.studentMetaText}>ADM:{data.admissionNumber}</Text>
+                    <View style={styles.studentMeta}>
+                        <Text style={styles.studentMetaText}>Roll: {data.rollNumber}</Text>
+                        <Text style={styles.studentMetaText}>•</Text>
+                        <Text style={styles.studentMetaText}>
+                            Class:{data.className}-{data.section}
+                        </Text>
+
+                    </View>
+                </View>
             </View>
-            <Text style={styles.statLabel}>{label}</Text>
-            <Text style={[styles.statValue, { color }]}>{value}</Text>
+
+            {/* Score Card */}
+            <View style={styles.scoreCardContainer}>
+                <View style={styles.scoreCardContent}>
+                    <View style={styles.scoreInfo}>
+                        <ScoreCircle percentage={data.percentage} status={data.status} styles={styles} />
+                        <View style={styles.scoreDetails}>
+                            <Text style={styles.scoreLabel}>Overall Score</Text>
+                            <Text style={styles.scoreMarks}>
+                                {data.totalMarksObtained}/{data.totalMaxMarks}
+                            </Text>
+                            <Text style={styles.scoreCGPA}>CGPA: {data.cgpa.toFixed(2)}</Text>
+                            <Text style={styles.scoreCGPA}>Percentage: {data.percentage} %</Text>
+                            <Text style={styles.scoreCGPA}>Div: {data.division}</Text>
+                            <Text style={styles.scoreCGPA}>ClassRank: {data.classRank} </Text>
+                            <Text style={styles.scoreCGPA}>PassSubjects: {passedSubjects} </Text>
+                            <Text style={styles.scoreCGPA}>Fail Subjects: {failedSubjects} </Text>
+                        </View>
+                    </View>
+                </View>
+            </View>
+
+            {/* Stats Grid */}
+            <View style={styles.statsContainer}>
+                {/* <EnhancedStatCard
+          icon="medal"
+          label="Division"
+          value={data.division === 'NONE' ? 'N/A' : data.division}
+          color="#6366f1"
+          styles={styles}
+        />
+        <EnhancedStatCard
+          icon="ribbon"
+          label="Class Rank"
+          value={data.classRank > 0 ? `#${data.classRank}` : 'N/A'}
+          color="#06b6d4"
+          styles={styles}
+        /> */}
+                {/* <EnhancedStatCard
+          icon="alert-circle"
+          label="Failed"
+          value={failedSubjects}
+          color="#f97316"
+          styles={styles}
+        />
+        <EnhancedStatCard
+          icon="checkmark-circle"
+          label="Passed"
+          value={passedSubjects}
+          color="#10b981"
+          styles={styles}
+        /> */}
+            </View>
+
+            {/* Subject Cards */}
+            <View style={styles.subjectsSection}>
+                {/* <Text style={styles.sectionTitle}>Subject Performance</Text> */}
+                <FlatList
+          scrollEnabled={false}
+          data={data.subjectMarks}
+          keyExtractor={(item) => item.subjectCode}
+          renderItem={({ item }) => (
+            <EnhancedSubjectCard subject={item} styles={styles} />
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="book-outline" size={48} color="#9CA3AF" />
+              <Text style={styles.emptyText}>No subjects found</Text>
+            </View>
+          }
+        />
+
+                <View style={styles.tableContainer}>
+
+                    {/* Header */}
+                    {/* <View style={[styles.tableRow, styles.tableHeader]}>
+                        <Text style={[styles.tableHeaderText, { flex: 2 }]}>
+                            Subject
+                        </Text>
+
+                        <Text style={styles.tableHeaderText}>
+                            Theory
+                        </Text>
+
+                        <Text style={styles.tableHeaderText}>
+                            Practical
+                        </Text>
+
+                        <Text style={styles.tableHeaderText}>
+                            Total
+                        </Text>
+
+                        <Text style={styles.tableHeaderText}>
+                            %
+                        </Text>
+
+                        <Text style={styles.tableHeaderText}>
+                            Status
+                        </Text>
+                    </View> */}
+
+                    {/* Rows */}
+                    {/* <FlatList
+                        scrollEnabled={false}
+                        data={data.subjectMarks}
+                        keyExtractor={(item) => item.subjectCode}
+                        renderItem={({ item, index }) => {
+
+                            const percentage = (
+                                (item.marksObtained / item.totalMarks) *
+                                100
+                            ).toFixed(0);
+
+                            return (
+                                <View
+                                    style={[
+                                        styles.tableRow,
+                                        {
+                                            backgroundColor:
+                                                index % 2 === 0
+                                                    ? theme.card
+                                                    : theme.mode === 'dark'
+                                                        ? '#1f2937'
+                                                        : '#f9fafb',
+                                        },
+                                    ]}
+                                >
+
+                                    {/* Subject */}
+                                    {/* <View style={{ flex: 2 }}>
+                                        <Text
+                                            style={styles.tableCell}
+                                            numberOfLines={2}
+                                        >
+                                            {item.subjectName}
+                                        </Text>
+
+                                        {item.optional && (
+                                            <Text
+                                                style={{
+                                                    fontSize: 10,
+                                                    color: '#f59e0b',
+                                                    textAlign: 'center',
+                                                }}
+                                            >
+                                                OPTIONAL
+                                            </Text>
+                                        )}
+                                    </View> */}
+
+                                    {/* Theory */}
+                                    {/* <View style={{ flex: 1 }}>
+                                        {item.hasPractical ? (
+                                            <>
+                                                <Text style={styles.tableCell}>
+                                                    {item.theoryMarksObtained}/
+                                                    {item.theoryMaxMarks}
+                                                </Text>
+
+                                                <Text
+                                                    style={[
+                                                        styles.smallStatus,
+                                                        {
+                                                            color:
+                                                                item.theoryStatus === 'PASS'
+                                                                    ? '#10b981'
+                                                                    : '#ef4444',
+                                                        },
+                                                    ]}
+                                                >
+                                                    {item.theoryStatus}
+                                                </Text>
+                                            </>
+                                        ) : (
+                                            <Text style={styles.tableCell}>
+                                                --
+                                            </Text>
+                                        )}
+                                    </View> */}
+
+                                    {/* Practical */}
+                                    {/* <View style={{ flex: 1 }}>
+                                        {item.hasPractical ? (
+                                            <>
+                                                <Text style={styles.tableCell}>
+                                                    {item.practicalMarksObtained}/
+                                                    {item.practicalMaxMarks}
+                                                </Text>
+
+                                                <Text
+                                                    style={[
+                                                        styles.smallStatus,
+                                                        {
+                                                            color:
+                                                                item.practicalStatus === 'PASS'
+                                                                    ? '#10b981'
+                                                                    : '#ef4444',
+                                                        },
+                                                    ]}
+                                                >
+                                                    {item.practicalStatus}
+                                                </Text>
+                                            </>
+                                        ) : (
+                                            <Text style={styles.tableCell}>
+                                                --
+                                            </Text>
+                                        )}
+                                    </View> */}
+
+                                    {/* Total */}
+                                    {/* <Text style={styles.tableCell}>
+                                        {item.marksObtained}/
+                                        {item.totalMarks}
+                                    </Text>
+
+                                    {/* Percentage */}
+                                    {/* <Text style={styles.tableCell}>
+                                        {percentage}%
+                                    </Text> */} 
+
+                                    {/* Status */}
+                                    {/* <Text
+                                        style={[
+                                            styles.tableCell,
+                                            {
+                                                color:
+                                                    item.status === 'PASS'
+                                                        ? '#10b981'
+                                                        : '#ef4444',
+                                                fontWeight: '700',
+                                            },
+                                        ]}
+                                    >
+                                        {item.status}
+                                    </Text> */}
+                                {/* </View>
+                            );
+                        }}
+                    /> */} 
+
+                    {/* Footer Total */}
+                    {/* <View style={[styles.tableRow, styles.totalRow]}>
+
+                        <Text
+                            style={[
+                                styles.totalText,
+                                { flex: 2, textAlign: 'left' },
+                            ]}
+                        >
+                            TOTAL
+                        </Text>
+
+                        <Text style={styles.totalText}>
+                            --
+                        </Text>
+
+                        <Text style={styles.totalText}>
+                            --
+                        </Text>
+
+                        <Text style={styles.totalText}>
+                            {data.totalMarksObtained}/
+                            {data.totalMaxMarks}
+                        </Text>
+
+                        <Text style={styles.totalText}>
+                            {data.percentage.toFixed(1)}%
+                        </Text>
+
+                        <Text
+                            style={[
+                                styles.totalText,
+                                {
+                                    color:
+                                        data.status === 'PASS'
+                                            ? '#10b981'
+                                            : '#ef4444',
+                                },
+                            ]}
+                        >
+                            {data.status}
+                        </Text>
+
+                    </View> */}
+
+                </View>
+            </View>
         </View>
     );
 };
 
-// Info Item Component
-const InfoItem: React.FC<{
-    icon: string;
-    label: string;
-    value?: string;
-    styles: ReturnType<typeof getStyles>;
-}> = ({ icon, label, value, styles }) => {
-    return (
-        <View style={styles.infoItem}>
-            <Ionicons name={icon as any} size={16} color="#6366f1" />
-            <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>{label}</Text>
-                {value && <Text style={styles.infoValue}>{value}</Text>}
-            </View>
-        </View>
-    );
-};
+export default ExamUI;
 
-function getStyles(theme: Theme) {
-    const dark = theme.mode === 'dark';
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
-    return StyleSheet.create({
+const getStyles = (theme: Theme) =>
+    StyleSheet.create({
         container: {
             flex: 1,
-            backgroundColor: dark ? '#0B1220' : '#F9FAFB',
-            paddingTop: Platform.OS === 'ios' ? 40 : 30,
+            backgroundColor: theme.background,
         },
+
+        // Header
         header: {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingHorizontal: 16,
-            paddingVertical: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: dark ? '#1F2937' : '#E5E7EB',
+            padding: 16,
+            backgroundColor: theme.background,
+            paddingTop: Platform.OS === 'android' ? 50 : 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 8,
+            elevation: 6,
         },
-        headerTitle: {
-            fontSize: 20,
+        smallStatus: {
+            fontSize: 10,
             fontWeight: '700',
-            color: dark ? '#E5E7EB' : '#000',
+            textAlign: 'center',
+            marginTop: 2,
+          },
+        headerTitle: {
+            fontSize: 22,
+            fontWeight: '700',
+            color: theme.text,
+            letterSpacing: 0.5,
         },
-        tabContainer: {
+
+        // Filter
+        filterContainer: {
             flexDirection: 'row',
-            backgroundColor: dark ? '#111827' : '#FFF',
-            borderBottomWidth: 1,
-            borderBottomColor: dark ? '#1F2937' : '#E5E7EB',
-            paddingHorizontal: 8,
-        },
-        tab: {
-            flex: 1,
+            gap: 10,
+            paddingHorizontal: 16,
             paddingVertical: 12,
-            paddingHorizontal: 8,
+            backgroundColor: theme.background,
+        },
+        filterChip: {
+            flex: 1,
+            flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
-            borderBottomWidth: 3,
-            borderBottomColor: 'transparent',
+            gap: 6,
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            backgroundColor: theme.cardBackground,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: theme.border,
         },
-        activeTab: {
-            borderBottomColor: '#6366f1',
-        },
-        tabIcon: {
-            marginBottom: 4,
-        },
-        tabText: {
+        filterChipText: {
             fontSize: 12,
-            color: dark ? '#9CA3AF' : '#6B7280',
-            fontWeight: '500',
-        },
-        activeTabText: {
-            color: '#6366f1',
             fontWeight: '600',
         },
+
+        // Center Container
         centerContainer: {
             flex: 1,
-            alignItems: 'center',
             justifyContent: 'center',
-            paddingHorizontal: 16,
+            alignItems: 'center',
+            minHeight: 300,
         },
         loadingText: {
-            marginTop: 12,
+            marginTop: 16,
             fontSize: 16,
-            color: dark ? '#fff' : '#6B7280',
-            textAlign:"center", paddingTop: "50%"
+            fontWeight: '600',
+            color: theme.textSecondary,
         },
         errorText: {
             marginTop: 12,
-            fontSize: 16,
+            fontSize: 15,
             color: '#ef4444',
             textAlign: 'center',
+            marginHorizontal: 20,
         },
         retryButton: {
-            marginTop: 16,
-            paddingHorizontal: 24,
-            paddingVertical: 10,
+            marginTop: 24,
+            flexDirection: 'row',
             backgroundColor: '#6366f1',
-            borderRadius: 8,
+            paddingVertical: 12,
+            paddingHorizontal: 28,
+            borderRadius: 12,
+            alignItems: 'center',
+            shadowColor: '#6366f1',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 4,
         },
         retryButtonText: {
             color: '#fff',
-            fontSize: 16,
-            fontWeight: '600',
-        },
-        contentContainer: {
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-        },
-        card: {
-            backgroundColor: dark ? '#111827' : '#FFF',
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 12,
-            borderWidth: 1,
-            borderColor: dark ? '#1F2937' : '#E5E7EB',
-        },
-        cardHeader: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            marginBottom: 12,
-        },
-        subjectBadge: {
-            width: 44,
-            height: 44,
-            borderRadius: 8,
-            backgroundColor: '#6366f120',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: 12,
-        },
-        subjectBadgeText: {
-            fontSize: 12,
+            fontSize: 15,
             fontWeight: '700',
-            color: '#6366f1',
-        },
-        cardTitle: {
-            fontSize: 16,
-            fontWeight: '600',
-            color: dark ? '#E5E7EB' : '#000',
-            flex: 1,
-        },
-        cardInfo: {
-            flexDirection: 'row',
-            marginBottom: 12,
-        },
-        infoItem: {
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingVertical: 8,
-        },
-        infoContent: {
             marginLeft: 8,
-            flex: 1,
-        },
-        infoLabel: {
-            fontSize: 12,
-            color: dark ? '#9CA3AF' : '#6B7280',
-        },
-        infoValue: {
-            fontSize: 14,
-            fontWeight: '600',
-            color: dark ? '#E5E7EB' : '#000',
         },
         emptyContainer: {
+            justifyContent: 'center',
             alignItems: 'center',
-            paddingVertical: 40,
+            paddingVertical: 60,
         },
         emptyText: {
             marginTop: 12,
             fontSize: 16,
-            color: dark ? '#9CA3AF' : '#6B7280',
+            fontWeight: '600',
+            color: theme.text,
+            textAlign: 'center',
         },
-        // Overall Card Styles
-        overallCard: {
-            backgroundColor: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-            borderRadius: 16,
-            padding: 24,
-            marginBottom: 20,
+        emptySubtext: {
+            marginTop: 6,
+            fontSize: 13,
+            color: theme.textSecondary,
+            textAlign: 'center',
+        },
+
+        // Content Container
+        contentContainer: {
+            padding: 16,
+            paddingBottom: 16,
+        },
+
+        // Student Info Card
+        studentInfoCard: {
+            backgroundColor: theme.cardBackground,
+            borderRadius: 14,
+            padding: 14,
+            marginBottom: 10,
+            borderLeftWidth: 4,
+            borderLeftColor: theme.primary,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 4,
+            elevation: 2,
+        },
+        studentInfo: {
+            flexDirection: 'column',
+        },
+        studentName: {
+            fontSize: 16,
+            fontWeight: '700',
+            color: theme.text,
+            marginBottom: 6,
+        },
+        studentMeta: {
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            marginTop: 8,
         },
-        overallInfo: {
-            flex: 1,
+        studentMetaText: {
+            fontSize: 12,
+            color: theme.textSecondary,
+            marginHorizontal: 4,
         },
-        overallLabel: {
-            fontSize: 14,
-            color: '#ffffff99',
-            marginBottom: 4,
+
+        // Score Card
+        scoreCardContainer: {
+            backgroundColor: theme.cardBackground,
+            borderRadius: 16,
+            padding: 10,
+            marginBottom: 0,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 3,
         },
-        overallScore: {
-            fontSize: 28,
-            fontWeight: '700',
-            color: '#fff',
-            marginBottom: 4,
+        scoreCardContent: {
+            alignItems: 'center',
         },
-        overallPercentage: {
-            fontSize: 18,
-            fontWeight: '600',
-            color: '#fbbf24',
+        scoreInfo: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            width: '100%',
         },
-        overallCircle: {
+        scoreCircleContainer: {
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 20,
+        },
+        scoreCircle: {
             width: 100,
             height: 100,
-            marginLeft: 16,
-        },
-        circleProgress: {
-            width: '100%',
-            height: '100%',
             borderRadius: 50,
-            borderWidth: 3,
-            borderColor: '#ffffff',
-            alignItems: 'center',
+            backgroundColor: theme.primary,
             justifyContent: 'center',
-            backgroundColor: 'rgba(255,255,255,0.1)',
+            alignItems: 'center',
+            shadowColor: theme.primary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 4,
         },
-        circlePercentage: {
-            fontSize: 20,
-            fontWeight: '700',
+        scorePercentage: {
+            fontSize: 32,
+            fontWeight: '800',
             color: '#fff',
         },
-        statsGrid: {
+        scoreStatus: {
+            fontSize: 12,
+            fontWeight: '700',
+            marginTop: 4,
+        },
+        scoreDetails: {
+            flex: 1,
+        },
+        scoreLabel: {
+            fontSize: 12,
+            color: theme.textSecondary,
+            fontWeight: '600',
+            marginBottom: 4,
+        },
+        scoreMarks: {
+            fontSize: 18,
+            fontWeight: '700',
+            color: theme.text,
+            marginBottom: 2,
+        },
+        scoreCGPA: {
+            fontSize: 13,
+            color: theme.primary,
+            fontWeight: '600',
+        },
+
+        // Stats Grid
+        statsContainer: {
+            marginBottom: 20,
+        },
+        enhancedStatCard: {
             flexDirection: 'row',
-            flexWrap: 'wrap',
-            marginBottom: 24,
-            justifyContent: 'space-between',
-        },
-        statCard: {
-            width: '48%',
-            backgroundColor: dark ? '#111827' : '#FFF',
-            borderRadius: 12,
-            padding: 16,
             alignItems: 'center',
-            marginBottom: 12,
-            borderWidth: 1,
-            borderColor: dark ? '#1F2937' : '#E5E7EB',
+            backgroundColor: theme.cardBackground,
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 10,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 4,
+            elevation: 1,
         },
-        statIcon: {
+        statIconContainer: {
             width: 44,
             height: 44,
-            borderRadius: 8,
-            alignItems: 'center',
+            borderRadius: 22,
             justifyContent: 'center',
-            marginBottom: 8,
+            alignItems: 'center',
+            marginRight: 12,
+        },
+        statContent: {
+            flex: 1,
         },
         statLabel: {
             fontSize: 12,
-            color: dark ? '#9CA3AF' : '#6B7280',
-            marginBottom: 4,
+            color: theme.textSecondary,
+            fontWeight: '600',
+            marginBottom: 2,
         },
-        statValue: {
-            fontSize: 18,
+        statValueText: {
+            fontSize: 16,
             fontWeight: '700',
         },
-        sectionTitle: {
-            fontSize: 18,
-            fontWeight: '700',
-            color: dark ? '#E5E7EB' : '#000',
-            marginTop: 12,
+
+        // Subject Card
+        enhancedSubjectCard: {
+            backgroundColor: theme.cardBackground,
+            borderRadius: 14,
+            padding: 16,
             marginBottom: 12,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 4,
+            elevation: 2,
         },
-        // Subject Card Styles
         subjectCardHeader: {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
             marginBottom: 12,
         },
-        subjectName: {
-            fontSize: 16,
-            fontWeight: '600',
-            color: dark ? '#E5E7EB' : '#000',
+        subjectTitleSection: {
+            flex: 1,
+            marginRight: 8,
         },
-        subjectCode: {
-            fontSize: 12,
-            color: dark ? '#9CA3AF' : '#6B7280',
-            marginTop: 2,
+        subjectCardTitle: {
+            fontSize: 15,
+            fontWeight: '700',
+            color: theme.text,
+            marginBottom: 6,
+        },
+        optionalBadge: {
+            backgroundColor: '#fef3c7',
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 6,
+            alignSelf: 'flex-start',
+        },
+        optionalBadgeText: {
+            fontSize: 11,
+            color: '#92400e',
+            fontWeight: '700',
         },
         statusBadge: {
             paddingHorizontal: 10,
-            paddingVertical: 4,
-            borderRadius: 6,
+            paddingVertical: 6,
+            borderRadius: 8,
+            minWidth: 70,
+            alignItems: 'center',
         },
         statusBadgeText: {
-            fontSize: 12,
-            fontWeight: '600',
+            fontSize: 11,
+            fontWeight: '700',
         },
-        scoreBar: {
-            marginBottom: 8,
-        },
-        scoreInfo: {
+
+        // Progress Bar
+        progressBarContainer: {
             flexDirection: 'row',
-            justifyContent: 'space-between',
-            marginBottom: 8,
-        },
-        scoreText: {
-            fontSize: 14,
-            fontWeight: '600',
-            color: dark ? '#E5E7EB' : '#000',
-        },
-        scorePercentage: {
-            fontSize: 14,
-            fontWeight: '600',
-            color: dark ? '#E5E7EB' : '#000',
+            alignItems: 'center',
+            marginBottom: 12,
         },
         progressBar: {
+            flex: 1,
             height: 8,
+            backgroundColor: theme.background,
             borderRadius: 4,
-            backgroundColor: dark ? '#1F2937' : '#E5E7EB',
             overflow: 'hidden',
+            marginRight: 10,
         },
-        progressFill: {
+        progressBarFill: {
             height: '100%',
             borderRadius: 4,
         },
-        optionalLabel: {
-            fontSize: 11,
-            color: '#f97316',
-            marginTop: 8,
-            fontWeight: '500',
-        },
-        // Analytics Styles
-        analyticsCard: {
-            backgroundColor: dark ? '#111827' : '#FFF',
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 20,
-            borderWidth: 1,
-            borderColor: dark ? '#1F2937' : '#E5E7EB',
-        },
-        analyticsTitle: {
-            fontSize: 16,
-            fontWeight: '600',
-            color: dark ? '#E5E7EB' : '#000',
-            marginBottom: 16,
-        },
-        performanceChartContainer: {
-            gap: 12,
-        },
-        performanceBar: {
-            marginBottom: 12,
-        },
-        performanceBarLabel: {
-            marginBottom: 6,
-        },
-        performanceLabel: {
+        progressText: {
             fontSize: 12,
-            color: dark ? '#9CA3AF' : '#6B7280',
-            fontWeight: '500',
+            fontWeight: '700',
+            color: theme.text,
+            minWidth: 35,
+            textAlign: 'right',
         },
-        performanceBarFill: {
-            height: 24,
-            borderRadius: 6,
-            minWidth: 24,
-        },
-        performerCard: {
-            backgroundColor: dark ? '#111827' : '#FFF',
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 12,
+
+        // Marks Grid
+        marksGrid: {
             flexDirection: 'row',
-            alignItems: 'center',
-            borderWidth: 1,
-            borderColor: dark ? '#1F2937' : '#E5E7EB',
+            justifyContent: 'space-between',
+            paddingVertical: 10,
+            borderTopWidth: 1,
+            borderBottomWidth: 1,
+            borderColor: theme.border,
+            marginBottom: 12,
         },
-        rankCircle: {
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: '#6366f1',
+        markItem: {
+            flex: 1,
             alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: 12,
         },
-        rankText: {
+        markDivider: {
+            width: 1,
+            height: 30,
+            backgroundColor: theme.border,
+        },
+        markLabel: {
+            fontSize: 11,
+            color: theme.textSecondary,
+            fontWeight: '600',
+            marginBottom: 4,
+        },
+        markValue: {
             fontSize: 14,
             fontWeight: '700',
-            color: '#fff',
+            color: theme.text,
         },
-        performerInfo: {
+
+        // Practical Section
+        practicalContainer: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+        },
+        practicalSection: {
             flex: 1,
         },
-        performerName: {
-            fontSize: 14,
-            fontWeight: '600',
-            color: dark ? '#E5E7EB' : '#000',
-        },
-        performerScore: {
+        practicalTitle: {
             fontSize: 12,
-            color: dark ? '#9CA3AF' : '#6B7280',
-            marginTop: 2,
+            fontWeight: '700',
+            color: theme.text,
+            marginBottom: 6,
         },
-        performerBadge: {
-            backgroundColor: '#6366f120',
-            paddingHorizontal: 10,
-            paddingVertical: 6,
+        practicalDetails: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        },
+        practicalMarks: {
+            fontSize: 13,
+            fontWeight: '700',
+            color: theme.text,
+        },
+        practicalStatus: {
+            paddingHorizontal: 8,
+            paddingVertical: 3,
             borderRadius: 6,
         },
-        badgeText: {
-            fontSize: 12,
-            fontWeight: '600',
-            color: '#6366f1',
+        practicalStatusText: {
+            fontSize: 10,
+            fontWeight: '700',
+        },
+
+        // Subjects Section
+        subjectsSection: {
+            marginTop: 0,
+        },
+        sectionTitle: {
+            fontSize: 17,
+            fontWeight: '700',
+            color: theme.text,
+            marginBottom: 12,
+            letterSpacing: 0.3,
+        },
+        dropdownWrapper: {
+            flex: 1,
+            marginHorizontal: 5,
+        },
+
+        dropdown: {
+            height: 50,
+            borderWidth: 1,
+            borderColor: '#D1D5DB',
+            borderRadius: 12,
+            paddingHorizontal: 12,
+            backgroundColor: theme.card,
+        },
+        tableContainer: {
+            marginTop: 16,
+            borderRadius: 14,
+            overflow: 'hidden',
+            borderWidth: 1,
+            borderColor: '#E5E7EB',
+        },
+
+        tableHeader: {
+            backgroundColor: theme.primary,
+        },
+
+        tableRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 14,
+            paddingHorizontal: 8,
+            borderBottomWidth: 1,
+            borderBottomColor: '#E5E7EB',
+        },
+
+        tableHeaderText: {
+            flex: 1,
+            color: '#fff',
+            fontWeight: '700',
+            fontSize: 13,
+            textAlign: 'center',
+        },
+
+        tableCell: {
+            flex: 1,
+            fontSize: 13,
+            color: theme.text,
+            textAlign: 'center',
+        },
+        totalRow: {
+            backgroundColor:
+                theme.mode === 'dark'
+                    ? '#111827'
+                    : '#EEF2FF',
+            borderTopWidth: 2,
+            borderTopColor: theme.primary,
+        },
+
+        totalText: {
+            flex: 1,
+            fontSize: 14,
+            fontWeight: '700',
+            color: theme.text,
+            textAlign: 'center',
         },
     });
-}
-
-export default ExamUI;

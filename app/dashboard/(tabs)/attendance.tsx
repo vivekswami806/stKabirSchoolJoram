@@ -1,7 +1,7 @@
 import { RootState } from '@/action/store';
 import { ThemeContext } from '@/action/theme/ThemeContext';
 import { Theme } from '@/action/theme/themeReducer';
-import { MONTHS, daysInMonth } from '@/app/CommonUtils';
+import { MONTHS, daysInMonth } from '@/components/CommonUtils';
 import { API_BASE_URL } from '@/config';
 import { getDeviceId } from '@/helper/getDeviceId';
 import { Ionicons } from '@expo/vector-icons';

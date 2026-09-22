@@ -1,8 +1,14 @@
 import { TIMER_FOR_BANNER } from "@/config";
 import { getResponsiveImageSize } from "@/utils/responsivedesignsystem";
-import { useEffect, useRef, useState } from "react";
-import { Image, View } from "react-native";
-
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 
 const bannerImages = [
   require("../assets/bannerImage/banner1.jpeg"),
@@ -12,121 +18,139 @@ const bannerImages = [
   require("../assets/bannerImage/banner5.jpeg"),
   require("../assets/bannerImage/banner6.jpeg"),
   require("../assets/bannerImage/banner7.jpeg"),
-  // require("../assets/bannerImage/banner8.jpg"),
-  // require("../assets/bannerImage/banner9.jpg"),
-  // require("../assets/bannerImage/banner10.jpg"),
+  // require("../assets/bannerImage/banner8.jpeg"),
+  // require("../assets/bannerImage/banner9.jpeg"),
+  // require("../assets/bannerImage/banner10.jpeg"),
+  // require("../assets/bannerImage/banner11.jpeg"),
 ];
 
-// ? Calculate dimensions once (const, not re-calculated on each render)
-const bannerHeight = getResponsiveImageSize().fullWidth * (9 / 18);
+// Calculated once (module scope) - not re-derived on every render.
 const bannerWidth = getResponsiveImageSize().fullWidth;
+const bannerHeight = bannerWidth * (11 / 18);
 
 /**
- * BannerImage Component
- * Auto-rotating carousel that displays banner images
- * - Cycles through images at TIMER_FOR_BANNER interval
- * - Properly cleans up on unmount
- * - Optimized re-renders
+ * BannerImage
+ * Auto-rotating, swipeable banner carousel.
+ * - Cycles automatically every TIMER_FOR_BANNER ms
+ * - User can swipe between banners at any time
+ * - Autoplay pauses while the user is dragging and resumes after
+ * - Dot indicators show the current position
+ * - Cleans up its interval on unmount
  */
 export const BannerImage = () => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null); // ? Use ref to store interval ID
+  const scrollViewRef = useRef<ScrollView>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentIndexRef = useRef(0); // avoids stale closures inside setInterval
+
+  const clearAutoplay = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  const startAutoplay = useCallback(() => {
+    clearAutoplay();
+    intervalRef.current = setInterval(() => {
+      const nextIndex = (currentIndexRef.current + 1) % bannerImages.length;
+      currentIndexRef.current = nextIndex;
+      setCurrentBannerIndex(nextIndex);
+      scrollViewRef.current?.scrollTo({ x: nextIndex * bannerWidth, animated: true });
+    }, TIMER_FOR_BANNER);
+  }, [clearAutoplay]);
 
   useEffect(() => {
-    // ? Only create interval once on mount
-    intervalRef.current = setInterval(() => {
-      setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % bannerImages.length);
-    }, TIMER_FOR_BANNER);
+    startAutoplay();
+    return clearAutoplay;
+  }, [startAutoplay, clearAutoplay]);
 
-    // ? Proper cleanup on unmount
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []); // ? Empty dependency array - runs once on mount only
+  // User grabbed the banner - stop autoplay so it doesn't fight their swipe.
+  const onScrollBeginDrag = useCallback(() => {
+    clearAutoplay();
+  }, [clearAutoplay]);
+
+  // User let go - snap our index state to wherever they landed, then
+  // resume autoplay from there.
+  const onMomentumScrollEnd = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const newIndex = Math.round(event.nativeEvent.contentOffset.x / bannerWidth);
+      currentIndexRef.current = newIndex;
+      setCurrentBannerIndex(newIndex);
+      startAutoplay();
+    },
+    [startAutoplay]
+  );
 
   return (
-    <View
-      style={{
-        width: bannerWidth,
-        height: bannerHeight,
-        borderRadius: 16,
-        overflow: "hidden",
-      }}
-    >
-      <Image
-        source={bannerImages[currentBannerIndex]}
+    <View style={{ width: bannerWidth }}>
+      <View
         style={{
-          width: bannerWidth, // ? Use constant instead of recalculating
-          height: bannerHeight, // ? Consistent with container height
-          borderRadius: 10,
+          width: bannerWidth,
+          height: bannerHeight,
+          borderRadius: 16,
+          overflow: "hidden",
         }}
-      />
+      >
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScrollBeginDrag={onScrollBeginDrag}
+          onMomentumScrollEnd={onMomentumScrollEnd}
+          scrollEventThrottle={16}
+        >
+          {bannerImages.map((image, index) => (
+            <Image
+              key={index}
+              source={image}
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel={`Banner ${index + 1} of ${bannerImages.length}`}
+              style={{
+                width: bannerWidth,
+                height: bannerHeight,
+              }}
+              resizeMode="cover"
+            />
+          ))}
+        </ScrollView>
+      </View>
+
+      <View style={styles.dotsContainer}>
+        {bannerImages.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.dot,
+              index === currentBannerIndex ? styles.dotActive : styles.dotInactive,
+            ]}
+          />
+        ))}
+      </View>
     </View>
   );
 };
 
-//---------------------------------------------------------------------------------
-
-// import { TIMER_FOR_BANNER } from "@/config";
-// import { getResponsiveImageSize } from "@/utils/responsivedesignsystem";
-// import { useEffect, useRef, useState } from "react";
-// import { Animated, Image, StyleSheet, View } from "react-native";
-
-// const bannerImages = [
-//   require('../assets/bannerImage/banner1.jpeg'),
-//   require('../assets/bannerImage/banner2.jpeg'),
-//   require('../assets/bannerImage/banner3.jpeg'),
-//   require('../assets/bannerImage/banner4.jpeg'),
-//   require('../assets/bannerImage/banner5.jpeg'),
-//   require('../assets/bannerImage/banner6.jpeg'),
-//   require('../assets/bannerImage/banner7.jpeg'),
-// ];
-
-// export const BannerImage = () => {
-//   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-//   const fadeAnim = useRef(new Animated.Value(1)).current;
-
-//   // Auto-rotate banners
-//   useEffect(() => {
-//     const interval = setInterval(() => {
-//       Animated.timing(fadeAnim, {
-//         toValue: 0,
-//         duration: 300,
-//         useNativeDriver: true,
-//       }).start(() => {
-//         setCurrentBannerIndex(prev => (prev + 1) % bannerImages.length);
-//         fadeAnim.setValue(1);
-//       });
-//     }, TIMER_FOR_BANNER);
-
-//     return () => clearInterval(interval);
-//   }, []);
-
-//   const bannerWidth = getResponsiveImageSize().fullWidth;
-//   const bannerHeight = bannerWidth * 9 / 16; // 16:9 aspect ratio
-
-//   return (
-//     <View style={{ width: bannerWidth, height: bannerHeight, borderRadius: 16, overflow: 'hidden' }}>
-//       {/* Blurred Background */}
-//       <Image
-//         source={bannerImages[currentBannerIndex]}
-//         style={StyleSheet.absoluteFill}
-//         blurRadius={15}
-//         resizeMode="cover"
-//       />
-//       {/* Main Banner */}
-//       <Animated.Image
-//         source={bannerImages[currentBannerIndex]}
-//         style={{
-//           width: bannerWidth,
-//           height: bannerHeight,
-//           borderRadius: 16,
-//           resizeMode: "cover",
-//           opacity: fadeAnim,
-//         }}
-//       />
-//     </View>
-//   );
-// };
+const styles = StyleSheet.create({
+  dotsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 4,
+    gap: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  dotActive: {
+    backgroundColor: "#333",
+    width: 16, // active dot stretches into a pill, common carousel pattern
+  },
+  dotInactive: {
+    backgroundColor: "#ccc",
+  },
+});

@@ -1,14 +1,15 @@
+import { logout } from "@/action/student/userContext";
 import { ThemeContext } from "@/action/theme/ThemeContext";
 import { API_BASE_URL } from "@/config";
 import { getDeviceId } from "@/helper/getDeviceId";
 import {
-    getContainerWidth,
-    getPhoneSize,
-    getResponsiveFontSize,
-    getResponsivePadding,
-    scaleFont,
-    scaleH,
-    scaleW,
+  getContainerWidth,
+  getPhoneSize,
+  getResponsiveFontSize,
+  getResponsivePadding,
+  scaleFont,
+  scaleH,
+  scaleW,
 } from "@/utils/responsivedesignsystem";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -18,18 +19,19 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useContext, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { useDispatch } from "react-redux";
 
 export default function ResetStaffPassword() {
   const [oldPassword, setOldPassword] = useState("");
@@ -40,6 +42,8 @@ export default function ResetStaffPassword() {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const dispatch = useDispatch();
 
   // Animation values
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -168,6 +172,16 @@ export default function ResetStaffPassword() {
                 // await AsyncStorage.removeItem("auth_token");
                 // router.replace("/");
                 router.replace("/(tabs)/home");
+
+                await AsyncStorage.multiRemove([
+                  "auth_expires_at",
+                  "auth_login_id",
+                  "auth_role",
+                  "auth_tenant",
+                  "auth_token",
+                ]);
+                dispatch(logout());
+                router.replace("/");
               },
             },
           ]

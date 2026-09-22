@@ -27,7 +27,7 @@ export default function AdminDashboard() {
 
     { icon: Icons.students, label: 'Students Info', color: '#EC4899', bg: '#FDF2F8', route: '/adminDashboard/(tabs)/InfoStudent/parentscreen' },
 
-    { icon: Icons.message, label: 'Message', color: '#14B8A6', bg: '#F0FDFA', route: '/(tabs)/messages' },
+    { icon: Icons.fees, label: 'Fee', color: '#14B8A6', bg: '#F0FDFA', route: '/adminDashboard//(tabs)/fees/fees' },
 
     { icon: Icons.notice, label: 'Notice', color: '#22C55E', bg: '#F0FDF4', route: '/dashboard/(tabs)/notice' },
   ];
@@ -103,7 +103,7 @@ function getStyles(theme: Theme) {
       flexDirection: 'row',
       backgroundColor: theme.background,
       marginHorizontal: 20,
-      marginBottom: 24,
+      marginBottom: 12,
       borderRadius: 16,
       padding: 0,
       justifyContent: 'space-between',
@@ -168,7 +168,7 @@ function getStyles(theme: Theme) {
       borderRadius: 16,
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 8,
+      marginBottom: 0,
     },
     menuLabel: {
       fontSize: 12,

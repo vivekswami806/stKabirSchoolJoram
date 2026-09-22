@@ -1,18 +1,18 @@
 import React, { useState } from "react";
 import {
-    FlatList,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  FlatList,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 import { DayType, TeacherNote } from "@/helper/teacherNotesDb";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { NoteCard } from "./teachernotecard";
+import { NoteCard } from "../../../components/teachernotecard";
 
 export default function TeacherNotesScreen() {
   const [notes, setNotes] = useState<TeacherNote[]>([]);

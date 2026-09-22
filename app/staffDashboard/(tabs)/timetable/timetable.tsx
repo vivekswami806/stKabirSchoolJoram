@@ -47,13 +47,13 @@ export default function TimeTableScreen() {
       if (!token || !encodedTenant || !userId) {
         throw new Error("Authentication missing");
       }
-
+      
       const tenantId = Buffer.from(encodedTenant, "base64").toString("utf-8");
-      let url = role == "PARENT" ? `${API_BASE_URL}v2/timetable/entries/by-class-section?className=${userDetail.studentClass}&section=${userDetail.classSection}`:
+      let url = role === "PARENT" ? `${API_BASE_URL}v2/timetable/entries/by-class-section?className=${userDetail.studentClass}&section=${userDetail.classSection}`:
                                     `${API_BASE_URL}v2/timetable/entries/by-teacher/${userId}`
       const response = await axios.get(
        url,
-        {
+        { 
           headers: {
             Authorization: `Bearer ${token}`,
             "X-Tenant-ID": tenantId,
@@ -61,6 +61,7 @@ export default function TimeTableScreen() {
           },
         }
       );
+      // console.log("---STUDENT| ",url, response.data);
       
       const mappedData: TimetableItem[] = (response.data ?? [])
         .filter((item: any) => item.isActive)
@@ -71,8 +72,14 @@ export default function TimeTableScreen() {
         .map(mapTimetableItem);
 
       setRawData(mappedData);
-    } catch (error) {
-      console.error("Failed to fetch timetable:", error);
+    } catch (error:any) {
+      console.log("AXIOS ERROR:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        config: error.config,
+      });
     } finally {
       setLoading(false);
     }

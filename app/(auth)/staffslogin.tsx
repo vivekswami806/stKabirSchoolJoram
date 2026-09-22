@@ -27,7 +27,7 @@ import {
   View,
 } from "react-native";
 import { useDispatch } from "react-redux";
-import { handleLogin, validateLoginForm } from "./loginHandler";
+import { handleLogin, validateLoginForm } from "../../utils/loginHandler";
 
 export default function StaffLogin() {
   const dispatch = useDispatch();
@@ -84,10 +84,7 @@ export default function StaffLogin() {
 
   const handleLoginPress = async () => {
     const deviceId = await getDeviceId();
-    const { isValid, errors: validationErrors } = validateLoginForm({
-      username,
-      password,
-    });
+    const { isValid, errors: validationErrors } = validateLoginForm({username, password,});
 
     if (!isValid) {
       setErrors(validationErrors);
