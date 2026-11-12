@@ -8,14 +8,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useContext, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 import { useSelector } from "react-redux";
 
@@ -73,153 +72,131 @@ export default function SelectChild() {
     router.replace("/(auth)/studentlogin");
   };
 
-  /**
-   * Render child card
-   */
-  const renderChild = ({item,}: { item: Child;}) => {
-    const isSelected = selectedChild === item.id;
+ const renderChild = ({ item }: { item: Child }) => {
+  const isSelected = selectedChild === item.id;
 
-    return (
-      <Pressable
-        onPress={() =>
-          setSelectedChildState(item.id)
-        }
-        disabled={loading}
+  const handleSelectChild = () => {
+    if (loading) return;
+
+    setSelectedChildState(item.id);
+    dispatch(setSelectedChild(item));
+    router.replace("/(tabs)/home");
+  };
+
+  return (
+    <Pressable
+      onPress={handleSelectChild}
+      disabled={loading}
+      style={[
+        styles.childCard,
+        {
+          backgroundColor: theme.background,
+          borderColor: isSelected
+            ? theme.primary
+            : theme.border,
+        },
+        isSelected && styles.selectedCard,
+      ]}
+    >
+      {/* Selected icon */}
+      <View
         style={[
-          styles.childCard,
+          styles.radioContainer,
           {
-            backgroundColor: theme.background,
             borderColor: isSelected
               ? theme.primary
               : theme.border,
           },
-          isSelected && styles.selectedCard,
         ]}
       >
-        {/* Selected icon */}
-        <View
-          style={[
-            styles.radioContainer,
-            {
-              borderColor: isSelected
-                ? theme.primary
-                : theme.border,
-            },
-          ]}
-        >
-          {isSelected && (
-            <View
-              style={[
-                styles.radioSelected,
-                {
-                  backgroundColor:
-                    theme.primary,
-                },
-              ]}
-            />
-          )}
-        </View>
+        {isSelected && (
+          <View
+            style={[
+              styles.radioSelected,
+              { backgroundColor: theme.primary },
+            ]}
+          />
+        )}
+      </View>
 
-        {/* Student image */}
-        <View style={styles.imageContainer}>
-          {item.studentImage ? (
-            <Image source={{ uri: getImageUri(item.studentImage) }} style={styles.studentImage}/>
-          ) : (
-            <View
+      {/* Student image */}
+      <View style={styles.imageContainer}>
+        {item.studentImage ? (
+          <Image
+            source={{ uri: getImageUri(item.studentImage) }}
+            style={styles.studentImage}
+          />
+        ) : (
+          <View
+            style={[
+              styles.placeholderImage,
+              { backgroundColor: theme.primary + "20" },
+            ]}
+          >
+            <Ionicons
+              name="person"
+              size={32}
+              color={theme.primary}
+            />
+          </View>
+        )}
+      </View>
+
+      {/* Student details */}
+      <View style={styles.childInfo}>
+        <Text
+          style={[styles.studentName, { color: theme.text }]}
+          numberOfLines={1}
+        >
+          {item.studentName}
+        </Text>
+
+        {item.studentClass && (
+          <View style={styles.detailRow}>
+            <Ionicons
+              name="school-outline"
+              size={15}
+              color={theme.textSecondary}
+            />
+            <Text
               style={[
-                styles.placeholderImage,
-                {
-                  backgroundColor:
-                    theme.primary + "20",
-                },
+                styles.detailText,
+                { color: theme.textSecondary },
               ]}
             >
-              <Ionicons
-                name="person"
-                size={32}
-                color={theme.primary}
-              />
-            </View>
-          )}
-        </View>
+              Class {item.studentClass}
+            </Text>
+          </View>
+        )}
 
-        {/* Student details */}
-        <View style={styles.childInfo}>
-          <Text
-            style={[
-              styles.studentName,
-              {
-                color: theme.text,
-              },
-            ]}
-            numberOfLines={1}
-          >
-            {item.studentName}
-          </Text>
+        {item.studentAdmissionNumber && (
+          <View style={styles.detailRow}>
+            <Ionicons
+              name="card-outline"
+              size={15}
+              color={theme.textSecondary}
+            />
+            <Text
+              style={[
+                styles.detailText,
+                { color: theme.textSecondary },
+              ]}
+            >
+              Admission No: {item.studentAdmissionNumber}
+            </Text>
+          </View>
+        )}
+      </View>
 
-          {item.studentClass && (
-            <View style={styles.detailRow}>
-              <Ionicons
-                name="school-outline"
-                size={15}
-                color={theme.textSecondary}
-              />
-
-              <Text
-                style={[
-                  styles.detailText,
-                  {
-                    color:
-                      theme.textSecondary,
-                  },
-                ]}
-              >
-                Class {item.studentClass}
-              </Text>
-            </View>
-          )}
-
-          {item.studentAdmissionNumber && (
-            <View style={styles.detailRow}>
-              <Ionicons
-                name="card-outline"
-                size={15}
-                color={theme.textSecondary}
-              />
-
-              <Text
-                style={[
-                  styles.detailText,
-                  {
-                    color:
-                      theme.textSecondary,
-                  },
-                ]}
-              >
-                Admission No:{" "}
-                {item.studentAdmissionNumber}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Arrow */}
-        <Ionicons
-          name={
-            isSelected
-              ? "checkmark-circle"
-              : "chevron-forward"
-          }
-          size={24}
-          color={
-            isSelected
-              ? theme.primary
-              : theme.textSecondary
-          }
-        />
-      </Pressable>
-    );
-  };
+      {/* Arrow */}
+      <Ionicons
+        name="chevron-forward"
+        size={24}
+        color={theme.textSecondary}
+      />
+    </Pressable>
+  );
+};
 
   /**
    * Empty state
@@ -390,7 +367,7 @@ export default function SelectChild() {
           },
         ]}
       >
-        <Pressable
+        {/* <Pressable
           onPress={handleContinue}
           disabled={!selectedChild || loading}
           style={[
@@ -420,7 +397,7 @@ export default function SelectChild() {
               />
             </>
           )}
-        </Pressable>
+        </Pressable> */}
       </View>
     </SafeAreaView>
   );

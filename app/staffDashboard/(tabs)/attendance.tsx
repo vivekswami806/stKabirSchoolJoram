@@ -1,963 +1,34 @@
-// import { Ionicons } from "@expo/vector-icons";
-// import axios from "axios";
-// import { Buffer } from "buffer";
-// import { router } from "expo-router";
-// import moment from 'moment';
-// import React, { useCallback, useContext, useEffect, useState } from "react";
-// import {
-//   ActivityIndicator,
-//   Platform,
-//   StyleSheet,
-//   Text,
-//   TouchableOpacity,
-//   View
-// } from "react-native";
-
-// import { ThemeContext } from "@/action/theme/ThemeContext";
-// import AttendanceRow from "./components/AttendanceRow";
-// import StudentList from "./components/StudentList";
-
-// import { RootState } from "@/action/store";
-// import { Theme } from "@/action/theme/themeReducer";
-// import ErrorRetry from "@/app/adminDashboard/(tabs)/components/ErrorRetry";
-// import StudentFilters from "@/app/adminDashboard/(tabs)/components/StudentFilters";
-// import LeaveSkeleton from "@/app/adminDashboard/(tabs)/leave/LeaveSkeleton";
-// import { API_BASE_URL, classes, sections } from "@/config";
-// import { getDeviceId } from "@/helper/getDeviceId";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
-// import DateTimePicker from "@react-native-community/datetimepicker";
-// import { ToastService } from "react-native-toastier";
-// import { useSelector } from "react-redux";
-
-// interface Person {
-//   id: string;
-//   name: string;
-//   avatar?: string;          // fallback initials
-//   image?: string | null;    // base64 image
-//   isPresent: "A" | "P";
-//   synced?: boolean;
-// }
-
-
-// // Local date helper
-// const formatDateLocal = (date: Date) => {
-//   const offset = date.getTimezoneOffset();
-//   const localDate = new Date(date.getTime() - offset * 60000);
-//   return localDate.toISOString().split("T")[0];
-// };
-
-// export default function AttendanceScreen() {
-//   const [activeTab, setActiveTab] = useState<"students" | "teacher">("students");
-//   const { userDetail } = useSelector((state: RootState) => state.user);
-//   const [dateObj, setDateObj] = useState(new Date());
-//   const [selectedDateStr, setSelectedDateStr] = useState(formatDateLocal(new Date()));
-//   const [showDatePicker, setShowDatePicker] = useState(false);
-
-//   const [students, setStudents] = useState<Person[]>([]);
-//   const [isLoading, setIsLoading] = useState(false);
-//   const [isSyncing, setIsSyncing] = useState(false);
-//   const [pendingCount, setPendingCount] = useState(0);
-//   const [classModalVisible, setClassModalVisible] = useState(false);
-//   const [sectionModalVisible, setSectionModalVisible] = useState(false);
-//   const [selectedClass, setSelectedClass] = useState(userDetail?.staffClass || "");
-//   const [selectedSection, setSelectedSection] = useState(userDetail?.staffSection || "");
-//   const [error, setError] = useState<string | null>(null);
-
-
-//   // Store pending attendance locally
-//   const [pendingChanges, setPendingChanges] = useState<
-//     Map<
-//       string,
-//       {
-//         studentId: string;
-//         date: string;
-//         status: "A" | "P";
-//         markedby: string; // add this
-//       }
-//     >
-//   >(new Map());
-
-//   const [userData, setUserData] = useState({
-//     staffClass: userDetail?.staffClass || "nur",
-//     name: userDetail?.name || "Teacher",
-//     status: true,
-//   });
-
-//   const themeState = useContext(ThemeContext);
-//   if (!themeState) return null;
-//   const { theme } = themeState;
-//   const styles = getStyles(theme);
-
-//   const classOptions = userDetail?.className || [];
-
-//   // Load students when class or date changes
-//   useEffect(() => {
-//     loadStudentsData();
-//   }, [userData.staffClass, selectedDateStr]);
-
-//   const loadStudentsData = async () => {
-//     try {
-//       setIsLoading(true);
-
-//       const encodedTenant = await AsyncStorage.getItem("auth_tenant");
-//       const token = await AsyncStorage.getItem("auth_token");
-//       const deviceId = await getDeviceId();
-//       if (!encodedTenant || !token) return;
-
-//       const tenantId = Buffer.from(encodedTenant, "base64").toString("utf-8");
-//       // console.log("----Attendance |", token, tenantId);
-//       let date = moment(new Date()).format("YYYY-MM-DD");
-//       const response = await axios.get(
-//         `${API_BASE_URL}attendance/students-for-attendance?date=${date}`,
-//         {
-//           headers: {
-//             Authorization: `Bearer ${token}`,
-//             "X-Tenant-ID": tenantId,
-//             'X-Device-ID': deviceId
-//           },
-//         }
-//       );
-//       //  console.log("---res Attandnnce STAFF|", response.data)
-
-//       const studentsData: Person[] = response.data.map((s: any) => ({
-//         id: s.studentId || s.id || s._id,
-//         name: s.studentName,
-//         avatar: s.studentName?.charAt(0) ?? "",
-//         image: s.studentImage
-//           ? `data:image/png;base64,${s.studentImage}`
-//           : null,
-//         isPresent: s.status,
-//         synced: true,
-//       }));
-
-//       setStudents(studentsData);
-//       setPendingChanges(new Map());
-//       setPendingCount(0);
-//     } catch (error: any) {
-//       setError("Failed to load Attendance requests");
-//       ToastService.show({
-//         type: "danger",
-//         message: "Failed to load Attendance requests",
-//         duration: 3000,
-//         contentContainerStyle: { flex: 1 },
-//       });
-//       if (error.response) {
-//         // console.log("STATUS:", error.response.status);
-//         // console.log("DATA:", error.response.data);
-//         // console.log("HEADERS:", error.response.headers);
-//       }
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   const toggleAttendance = useCallback(
-//     (id: string, status: "A" | "P") => {
-//       setStudents((prev) =>
-//         prev.map((s) =>
-//           s.id === id ? { ...s, isPresent: status, synced: false } : s
-//         )
-//       );
-
-//       const key = `${id}_${selectedDateStr}`;
-//       setPendingChanges((prev) => {
-//         const map = new Map(prev);
-//         map.set(key, {
-//           studentId: id,
-//           date: selectedDateStr, // don't forget date
-//           status,
-//           markedby: userDetail.id,
-//         });
-//         setPendingCount(map.size);
-//         return map;
-//       });
-
-//     },
-//     [selectedDateStr]
-//   );
-
-//   const markAllPresent = () => {
-//     // 1️⃣ Update all students in the UI
-//     const updated: Person[] = students.map((s) => ({
-//       ...s,
-//       isPresent: "P",          // Mark as Present
-//       synced: false,           // Will need sync
-//     }));
-
-//     setStudents(updated);
-
-//     // 2️⃣ Prepare pendingChanges map
-//     const map = new Map(pendingChanges);
-
-//     updated.forEach((s) => {
-//       const key = `${s.id}_${selectedDateStr}`;
-//       map.set(key, {
-//         studentId: s.id,
-//         date: selectedDateStr,
-//         status: "P",            // Present
-//         markedby: userDetail.id,
-//       });
-//     });
-
-//     setPendingChanges(map);
-//     setPendingCount(map.size);
-//   };
-
-
-
-//   // 🔥 ONLY SYNC WHEN USER CLICKS
-//   const handleManualSync = async () => {
-//     if (pendingChanges.size === 0) {
-//       ToastService.show({
-//         type: "info",
-//         message: "All Synced",
-//         duration: 3000,
-//         contentContainerStyle: { flex: 1 },
-//       });
-//       return;
-//     }
-
-//     try {
-//       setIsSyncing(true);
-
-//       const encodedTenant = await AsyncStorage.getItem("auth_tenant");
-//       const token = await AsyncStorage.getItem("auth_token");
-//       const deviceId = await getDeviceId();
-//       if (!encodedTenant || !token) return;
-
-//       const tenantId = Buffer.from(encodedTenant, "base64").toString("utf-8");
-//       const attendanceArray = Array.from(pendingChanges.values());
-//       // console.log("---attendanceArraymarkBulkAttendance param|", attendanceArray);
-//       let response = await axios.post(
-//         `${API_BASE_URL}attendance/markBulkAttendance`,
-//         attendanceArray, // ⚡ wrap in object if API expects "attendance" key
-//         {
-//           headers: {
-//             Authorization: `Bearer ${token}`,
-//             "X-Tenant-ID": tenantId,
-//             'X-Device-ID': deviceId
-//           },
-//         }
-//       );
-//       //  console.log("---response,", response.data);
-//       ToastService.show({
-//         type: "success",
-//         message: "Attendance synced successfully",
-//         duration: 3000,
-//         contentContainerStyle: { flex: 1 },
-//       });
-//       await loadStudentsData();
-//     } catch (e) {
-//       // console.log("Sync error:", e);
-//       ToastService.show({
-//         type: "danger",
-//         message: "Sync error",
-//         duration: 3000,
-//         contentContainerStyle: { flex: 1 },
-//       });
-//     } finally {
-//       setIsSyncing(false);
-//     }
-//   };
-
-
-//   const onDateChange = (_: any, date?: Date) => {
-//     setShowDatePicker(false);
-//     if (date) {
-//       setDateObj(date);
-//       setSelectedDateStr(formatDateLocal(date));
-//     }
-//   };
-
-//   return (
-//     <View style={styles.container}>
-//       <View style={styles.header}>
-//         <TouchableOpacity onPress={() => router.replace("/(tabs)/home")}>
-//           <Ionicons name="arrow-back" size={26} style={styles.backButtonColor} />
-//         </TouchableOpacity>
-
-//         <Text style={styles.headerTitle}>Attendance</Text>
-//         <TouchableOpacity
-//               onPress={() => router.push("/staffDashboard/(tabs)/staffsummary")}
-//               // style={"styles.headerBtn"}
-//             >
-//               <Text style={{ fontSize: 22 }}>🗓️</Text>
-//             </TouchableOpacity>
-//         <TouchableOpacity
-//           onPress={handleManualSync}
-//           disabled={isSyncing}
-//           style={{
-//             flexDirection: "row",
-//             alignItems: "center",
-//             backgroundColor: theme.primary,
-//             paddingVertical: 6,
-//             paddingHorizontal: 12,
-//             borderRadius: 20,
-//             shadowColor: "#000",
-//             shadowOffset: { width: 0, height: 2 },
-//             shadowOpacity: 0.25,
-//             shadowRadius: 3.84,
-//             elevation: 5,
-//           }}
-//         >
-//           {isSyncing ? (
-//             <ActivityIndicator size="small" color="#fff" />
-//           ) : (
-//             <>
-//               <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
-//               <Text
-//                 style={{
-//                   color: "#000",
-//                   fontWeight: "600",
-//                   marginLeft: 6,
-//                 }}
-//               >
-//                 Mark
-//               </Text>
-
-//               {pendingCount > 0 && (
-//                 <View
-//                   style={{
-//                     backgroundColor: "#000",
-//                     borderRadius: 10,
-//                     marginLeft: 6,
-//                     minWidth: 20,
-//                     paddingHorizontal: 6,
-//                     alignItems: "center",
-//                   }}
-//                 >
-//                   <Text style={{ color: "#fff", fontSize: 12, fontWeight: "bold" }}>
-//                     {pendingCount}
-//                   </Text>
-//                 </View>
-//               )}
-//             </>
-//           )}
-//         </TouchableOpacity>
-
-//       </View> 
-//       <StudentFilters
-//         styles={styles}
-//         selectedDateStr={selectedDateStr}
-
-//         classModalVisible={classModalVisible}
-//         setClassModalVisible={setClassModalVisible}
-
-//         sectionModalVisible={sectionModalVisible}
-//         setSectionModalVisible={setSectionModalVisible}
-
-//         classOptions={classes}
-//         sectionOptions={sections}
-
-//         selectedClass={selectedClass}
-//         setSelectedClass={setSelectedClass}
-
-//         selectedSection={selectedSection}
-//         setSelectedSection={setSelectedClass}
-//         role ="STAFF"
-//         onDatePress={() => setShowDatePicker(true)}
-//       />
-
-//       <View style={styles.quickActionBar}>
-//         <Text style={{color:theme.text}}>Total: {students.length}</Text>
-//         <TouchableOpacity onPress={markAllPresent}>
-//           <Text style={{ color: theme.primary }}>Mark All Present</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {isLoading ? (
-//         <LeaveSkeleton isDark={false} />
-//       ) : error ? (
-//         <ErrorRetry
-//           message={error}
-//           isDark={false}
-//           onRetry={() => loadStudentsData()}
-//         />
-//       ) : students.length === 0 ? (
-//         <View style={styles.emptyContainer}>
-//           <Ionicons
-//             name="document-text-outline"
-//             size={80}
-//             color={theme.mode === "dark" ? "#A1A1AA" : "#6B7280"}
-//             style={styles.emptyIcon}
-//           />
-//           <Text style={styles.emptyTitle}>No Students</Text>
-//           <Text style={styles.emptySubtitle}>There are no students to display for this date.</Text>
-//         </View>
-//       ) : (
-//         <StudentList
-//           students={students}
-//           styles={styles}
-//           renderAttendanceRow={(item) => (
-//             <AttendanceRow
-//               key={item.id}
-//               item={item}
-//               listType="students"
-//               styles={styles}
-//               toggleAttendance={toggleAttendance}
-//             />
-//           )}
-//         />
-//       )}
-
-//       {showDatePicker && (
-//         <DateTimePicker
-//           value={dateObj}
-//           mode="date"
-//           display={Platform.OS === "ios" ? "spinner" : "default"}
-//           onChange={onDateChange}
-//           maximumDate={new Date()}
-//           minimumDate={new Date()}
-//         />
-//       )}
-//     </View>
-//   );
-// }
-
-// function getStyles(theme: Theme) {
-//   let isDark = theme.mode === "dark";
-//   const styles = StyleSheet.create({
-//     offlineBanner: {
-//       backgroundColor: '#FF6B6B',
-//       flexDirection: 'row',
-//       alignItems: 'center',
-//       justifyContent: 'center',
-//       paddingVertical: 8,
-//       gap: 6,
-//     },
-//     offlineText: {
-//       color: '#fff',
-//       fontSize: 13,
-//       fontWeight: '500',
-//     },
-//     pendingBanner: {
-//       backgroundColor: '#FFF3CD',
-//       flexDirection: 'row',
-//       alignItems: 'center',
-//       justifyContent: 'center',
-//       paddingVertical: 8,
-//       gap: 6,
-//     },
-//     backButtonColor:{
-//       color: !isDark ? '#1a1a1a' : '#f8f9fa',
-//     },
-//     pendingText: {
-//       color: '#856404',
-//       fontSize: 13,
-//       fontWeight: '500',
-//     },
-//     container: {
-//       flex: 1,
-//       backgroundColor: theme.background,
-//       paddingTop: Platform.OS === 'ios' ? 60 : 50,
-//     },
-//     quickActionBar: {
-//       flexDirection: 'row',
-//       justifyContent: 'space-between',
-//       paddingHorizontal: 20,
-//       paddingVertical: 10,
-//       backgroundColor: isDark ? '#1a1a1a' : '#f8f9fa',
-//       borderBottomWidth: 1,
-//       borderColor: '#eee'
-//     },
-//     headerIcon: {
-//       color: !isDark
-//         ? '#000104'
-//         : '#E9EFFC',
-//     },
-
-//     header: {
-//       flexDirection: "row",
-//       alignItems: "center",
-//       paddingTop: 8,
-//       paddingBottom: 16,
-//       paddingHorizontal: 20,
-//       backgroundColor: theme.background,
-//       justifyContent: "space-between",
-//       borderBottomWidth: 1,
-//       borderBottomColor: isDark
-//         ? '#000104'
-//         : '#E9EFFC',
-//     },
-//     headerTitle: {
-//       fontSize: 20,
-//       fontWeight: "700",
-//       color: !isDark
-//         ? '#000104'
-//         : '#E9EFFC',
-//     },
-
-//     // Tabs
-//     topTabs: {
-//       flexDirection: "row",
-//       backgroundColor: isDark
-//         ? '#000104'
-//         : '#E9EFFC',
-//       paddingHorizontal: 20,
-//       paddingTop: 12,
-//       paddingBottom: 12,
-//       justifyContent: "flex-start",
-//       gap: 20,
-//     },
-//     topTab: {
-//       paddingBottom: 8,
-//       marginRight: 20,
-//     },
-//     topTabActive: {
-//       borderBottomWidth: 3,
-//       borderColor: "#6366f1",
-//     },
-//     topTabText: {
-//       fontSize: 16,
-//       color: !isDark
-//         ? '#000104'
-//         : '#E9EFFC',
-//       fontWeight: "400",
-//     },
-//     topTabTextActive: {
-//       color: "#6366f1",
-//       fontWeight: "600",
-//     },
-
-//     // Filters
-//     filterContainer: {
-//       flexDirection: "row",
-//       padding: 16,
-//       gap: 12,
-//       backgroundColor: isDark
-//         ? '#000104'
-//         : '#E9EFFC',
-//       alignItems: "center",
-//     },
-//     classDropdown: {
-//       flex: 1,
-//       flexDirection: "row",
-//       justifyContent: "space-between",
-//       alignItems: "center",
-//       paddingVertical: 12,
-//       paddingHorizontal: 14,
-//       backgroundColor: "white",
-//       borderRadius: 10,
-//       borderWidth: 1,
-//       borderColor: !isDark
-//         ? '#000104'
-//         : '#E9EFFC',
-//     },
-//     dropdownText: {
-//       fontSize: 15,
-//       color: "#495057",
-//     },
-//     dropdownIcon: {
-//       fontSize: 14,
-//       color: "#6c757d",
-//     },
-//     dateText: {
-//       fontSize: 15,
-//       color: "#495057",
-//     },
-//     calendarIcon: {
-//       fontSize: 16,
-//     },
-
-//     // Content container
-//     contentContainer: {
-//       flex: 1,
-//     },
-
-//     // Student list
-//     listContainer: {
-//       backgroundColor: theme.background,
-//       paddingBottom: 20,
-//       flex: 1,
-//     },
-//     columnHeaders: {
-//       flexDirection: "row",
-//       paddingHorizontal: 20,
-//       paddingVertical: 12,
-//       backgroundColor: theme.background,
-//       alignItems: "center",
-//     },
-//     columnHeaderText: {
-//       flex: 1,
-//       fontSize: 14,
-//       fontWeight: "600",
-//       color:theme.text,
-//     },
-//     attendanceHeaders: {
-//       flexDirection: "row",
-//       gap: 40,
-//     },
-//     attendanceHeaderText: {
-//       fontSize: 14,
-//       fontWeight: "600",
-//       color: theme.text,
-//       width: 60,
-//       textAlign: "center",
-//     },
-
-//     studentRow: {
-//       flexDirection: "row",
-//       alignItems: "center",
-//       paddingHorizontal: 20,
-//       paddingVertical: 14,
-//       borderBottomWidth: 1,
-//       borderBottomColor: !isDark
-//         ? '#000104'
-//         : '#E9EFFC',
-//     },
-//     studentInfo: {
-//       flex: 1,
-//       flexDirection: "row",
-//       alignItems: "center",
-//     },
-//     avatar: {
-//       width: 45,
-//       height: 45,
-//       borderRadius: 22.5,
-//       backgroundColor: "#e9ecef",
-//       justifyContent: "center",
-//       alignItems: "center",
-//       marginRight: 12,
-//     },
-//     avatarText: {
-//       fontSize: 22,
-//     },
-//     studentName: {
-//       fontSize: 15,
-//       color: !isDark
-//         ? '#000104'
-//         : '#E9EFFC',
-//       fontWeight: "500",
-//     },
-
-//     attendanceButtons: {
-//       flexDirection: "row",
-//       gap: 40,
-//     },
-//     buttonContainer: {
-//       width: 60,
-//       alignItems: "center",
-//     },
-//     checkButton: {
-//       width: 24,
-//       height: 24,
-//       borderRadius: 12,
-//       borderWidth: 2,
-//       borderColor: "#dee2e6",
-//       backgroundColor: "white",
-//       justifyContent: "center",
-//       alignItems: "center",
-//     },
-//     checkButtonActive: {
-//       borderColor: "#6366f1",
-//       backgroundColor: "#6366f1",
-//     },
-//     checkMark: {
-//       color: "white",
-//       fontSize: 14,
-//       fontWeight: "bold",
-//     },
-
-//     // Teacher calendar styles
-//     teacherMonthHeader: {
-//       flexDirection: "row",
-//       justifyContent: "space-between",
-//       marginBottom: 8,
-//       alignItems: "center",
-//     },
-//     teacherMonthText: {
-//       fontSize: 18,
-//       fontWeight: "600",
-//       color: !isDark
-//         ? "#777"
-//         : '#E9EFFC',
-//     },
-//     teacherDaysRow: {
-//       flexDirection: "row",
-//       justifyContent: "space-between",
-//       marginBottom: 6,
-//       color: !isDark
-//         ? "#777"
-//         : '#E9EFFC',
-//     },
-//     teacherDayName: {
-//       width: "14%",
-//       textAlign: "center",
-//       fontWeight: "500",
-//       color: !isDark
-//         ? "#777"
-//         : '#E9EFFC',
-//     },
-//     calendarMonthChanger: {
-//       color: !isDark
-//         ? "#777000"
-//         : '#E9EFFC',
-//     },
-//     teacherDateGrid: {
-//       flexDirection: "row",
-//       flexWrap: "wrap",
-//       justifyContent: "space-between",
-//     },
-//     teacherDateCircle: {
-//       width: "14%",
-//       height: 36,
-//       borderRadius: 18,
-//       justifyContent: "center",
-//       alignItems: "center",
-//       marginVertical: 6,
-//       backgroundColor: "#fff",
-//     },
-//     teacherDateCircleActive: {
-//       backgroundColor: "#8A7DFF",
-//     },
-//     teacherDateText: {
-//       color: "#000",
-//     },
-//     teacherDateTextActive: {
-//       color: "#fff",
-//       fontWeight: "600",
-//     },
-//     teacherCardRow: {
-//       flexDirection: "row",
-//       justifyContent: "space-between",
-//       marginTop: 18,
-//     },
-//     teacherCard: {
-//       width: "32%",
-//       paddingVertical: 18,
-//       borderRadius: 12,
-//       alignItems: "center",
-//     },
-//     teacherCardLabel: {
-//       fontSize: 14,
-//       marginTop: 8,
-//       color: "#444",
-//     },
-//     teacherCardValue: {
-//       marginTop: 6,
-//       fontSize: 18,
-//       fontWeight: "700",
-//     },
-//     dropdownMenu: {
-//       backgroundColor: "#fff",
-//       borderWidth: 1,
-//       borderColor: "#ddd",
-//       borderRadius: 10,
-//       marginTop: 5,
-//       paddingVertical: 8,
-//     },
-
-//     dropdownItem: {
-//       paddingVertical: 10,
-//       paddingHorizontal: 14,
-//     },
-
-//     dropdownItemText: {
-//       fontSize: 15,
-//       color: "#333",
-//     },
-
-//     classDropdownWrapper: {
-//       width: '30%',
-//       height: 35,
-//       borderWidth: 1,
-//       borderColor: '#ccc',
-//       borderRadius: 8,
-//       justifyContent: 'center',
-//       paddingHorizontal: 10,
-//       backgroundColor: '#fff',
-//     },
-
-//     selectedText: {
-//       fontSize: 16,
-//       color: '#333',
-//     },
-
-//     /* Date picker container */
-//     datePickerContainer: {
-//       width: '35%',
-//       height: 35,
-//       borderWidth: 1,
-//       borderColor: '#ccc',
-//       borderRadius: 8,
-//       flexDirection: 'row',
-//       alignItems: 'center',
-//       justifyContent: 'space-between',
-//       paddingHorizontal: 10,
-//       backgroundColor: '#fff',
-//     },
-
-//     /* ---------- MODAL STYLES ---------- */
-
-//     modalContainer: {
-//       flex: 1,
-//       backgroundColor: 'rgba(0,0,0,0.3)',
-//       justifyContent: 'center',
-//       paddingHorizontal: 20,
-//     },
-
-//     modalBox: {
-//       backgroundColor: '#fff',
-//       borderRadius: 10,
-//       paddingVertical: 10,
-//     },
-
-//     modalItem: {
-//       paddingVertical: 14,
-//       paddingHorizontal: 15,
-//       borderBottomWidth: 1,
-//       borderBottomColor: '#eee',
-//     },
-
-//     modalItemText: {
-//       fontSize: 16,
-//       color: '#333',
-//     },
-
-
-//     //-----------------------------------------------------------
-
-//     monthNavigation: {
-//       flexDirection: 'row',
-//       justifyContent: 'space-between',
-//       alignItems: 'center',
-//       marginBottom: 20,
-//       paddingHorizontal: 10,
-//     },
-//     navButton: {
-//       padding: 8,
-//     },
-//     monthLabel: {
-//       fontSize: 18,
-//       fontWeight: 'bold',
-//       color: '#333',
-//     },
-//     statsContainer: {
-//       flexDirection: 'row',
-//       justifyContent: 'space-between',
-//       marginBottom: 20,
-//       gap: 8,
-//     },
-//     statCard: {
-//       flex: 1,
-//       padding: 12,
-//       borderRadius: 12,
-//       alignItems: 'center',
-//       justifyContent: 'center',
-//     },
-//     statNumber: {
-//       fontSize: 22,
-//       fontWeight: 'bold',
-//       color: '#333',
-//       marginTop: 4,
-//     },
-//     statLabel: {
-//       fontSize: 11,
-//       color: '#666',
-//       marginTop: 2,
-//     },
-//     weekDaysHeader: {
-//       flexDirection: 'row',
-//       marginBottom: 8,
-//     },
-//     weekDayCell: {
-//       flex: 1,
-//       alignItems: 'center',
-//       paddingVertical: 8,
-//     },
-//     weekDayText: {
-//       fontSize: 12,
-//       fontWeight: '600',
-//       color: '#666',
-//     },
-//     calendarGrid: {
-//       flexDirection: 'row',
-//       flexWrap: 'wrap',
-//       marginBottom: 20,
-//     },
-//     calendarDay: {
-//       width: '14.28%', // 100% / 7 days
-//       aspectRatio: 1,
-//       padding: 2,
-//     },
-//     dayContainer: {
-//       flex: 1,
-//       justifyContent: 'center',
-//       alignItems: 'center',
-//       borderRadius: 8,
-//       borderWidth: 2,
-//       backgroundColor: '#fff',
-//       position: 'relative',
-//     },
-//     emptyDay: {
-//       flex: 1,
-//     },
-//     dayNumber: {
-//       fontSize: 14,
-//       fontWeight: '500',
-//       color: '#333',
-//     },
-
-//     emptyContainer: {
-//       flex: 1,
-//       justifyContent: "center",
-//       alignItems: "center",
-//       paddingHorizontal: 32,
-//     },
-//     emptyIcon: {
-//       marginBottom: 20,
-//     },
-//     emptyTitle: {
-//       fontSize: 22,
-//       fontWeight: "700",
-//       color: isDark ? "#F3F4F6" : "#111827",
-//       marginBottom: 8,
-//     },
-//     emptySubtitle: {
-//       fontSize: 14,
-//       color: isDark ? "#A1A1AA" : "#6B7280",
-//       textAlign: "center",
-//     },
-
-//   });
-//   return styles;
-// }
-
-
-
-// ----------------------------------------------------------------------------
-
-
-
+import { RootState } from "@/action/store";
+import { ThemeContext } from "@/action/theme/ThemeContext";
+import { Theme } from "@/action/theme/themeReducer";
+import ErrorRetry from "@/app/adminDashboard/(tabs)/components/ErrorRetry";
+import StudentFilters from "@/app/adminDashboard/(tabs)/components/StudentFilters";
+import LeaveSkeleton from "@/app/adminDashboard/(tabs)/leave/LeaveSkeleton";
+import { ContactModal } from "@/components/ContactModal";
+import { API_BASE_URL, classes, sections } from "@/config";
+import { getDeviceId } from "@/helper/getDeviceId";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import axios from "axios";
 import { Buffer } from "buffer";
 import { router } from "expo-router";
+import * as Sharing from "expo-sharing";
 import moment from 'moment';
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  Modal,
   Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from "react-native";
-
-import { ThemeContext } from "@/action/theme/ThemeContext";
-
-import { RootState } from "@/action/store";
-import { Theme } from "@/action/theme/themeReducer";
-import ErrorRetry from "@/app/adminDashboard/(tabs)/components/ErrorRetry";
-import StudentFilters from "@/app/adminDashboard/(tabs)/components/StudentFilters";
-import LeaveSkeleton from "@/app/adminDashboard/(tabs)/leave/LeaveSkeleton";
-import { API_BASE_URL, classes, sections } from "@/config";
-import { getDeviceId } from "@/helper/getDeviceId";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { ToastService } from "react-native-toastier";
+import { captureRef } from "react-native-view-shot";
 import { useSelector } from "react-redux";
 
 interface Person {
@@ -969,6 +40,9 @@ interface Person {
   synced?: boolean;
   admissionNumber?: string;
   rollNumber?: string;
+  number?: string; // phone number
+  isHosteler?: boolean
+
 }
 
 // Local date helper
@@ -984,7 +58,6 @@ export default function AttendanceScreen() {
   const [dateObj, setDateObj] = useState(new Date());
   const [selectedDateStr, setSelectedDateStr] = useState(formatDateLocal(new Date()));
   const [showDatePicker, setShowDatePicker] = useState(false);
-
   const [students, setStudents] = useState<Person[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -994,6 +67,11 @@ export default function AttendanceScreen() {
   const [selectedClass, setSelectedClass] = useState(userDetail?.staffClass || "");
   const [selectedSection, setSelectedSection] = useState(userDetail?.staffSection || "");
   const [error, setError] = useState<string | null>(null);
+  const [summaryModalVisible, setSummaryModalVisible] = useState(false);
+  const [showPresent, setShowPresent] = useState(false);
+  const [isDownloadingSummary, setIsDownloadingSummary] = useState(false);
+
+  const summaryViewRef = useRef<any>(null);
 
   const [pendingChanges, setPendingChanges] = useState<
     Map<
@@ -1012,6 +90,9 @@ export default function AttendanceScreen() {
     name: userDetail?.name || "Teacher",
     status: true,
   });
+  const [selectedStudent, setSelectedStudent] = useState<Person | null>(null);
+  const [contactModalVisible, setContactModalVisible] = useState(false);
+
 
   const themeState = useContext(ThemeContext);
   if (!themeState) return null;
@@ -1058,6 +139,8 @@ export default function AttendanceScreen() {
         synced: true,
         admissionNumber: s.admissionNumber,
         rollNumber: s.rollNumber,
+        number: s.number ?? null,
+        isHosteler: s.isHosteler
       }));
 
       setStudents(studentsData);
@@ -1125,6 +208,11 @@ export default function AttendanceScreen() {
     setPendingCount(map.size);
   };
 
+  const showAllSummaryData = () => {
+    setShowPresent(false);
+    setSummaryModalVisible(true);
+  };
+
   const handleManualSync = async () => {
     if (pendingChanges.size === 0) {
       ToastService.show({
@@ -1185,18 +273,83 @@ export default function AttendanceScreen() {
       setSelectedDateStr(formatDateLocal(date));
     }
   };
+  const downloadSummaryAsImage = async () => {
+    if (!summaryViewRef.current) {
+      ToastService.show({
+        type: "danger",
+        message: "Summary is not ready",
+        duration: 3000,
+        contentContainerStyle: { flex: 1 },
+      });
+      return;
+    }
+
+    try {
+      setIsDownloadingSummary(true);
+
+      // Give React Native a moment to finish rendering images/layout
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const uri = await captureRef(summaryViewRef.current, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+
+      if (!uri) {
+        throw new Error("Failed to capture summary");
+      }
+
+      const canShare = await Sharing.isAvailableAsync();
+
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: "image/png",
+          dialogTitle: "Attendance Summary",
+          UTI: "public.png",
+        });
+      } else {
+        ToastService.show({
+          type: "info",
+          message: "Summary image created successfully",
+          duration: 3000,
+          contentContainerStyle: { flex: 1 },
+        });
+      }
+    } catch (error) {
+      console.error("Summary image error:", error);
+
+      ToastService.show({
+        type: "danger",
+        message: "Failed to create summary image",
+        duration: 3000,
+        contentContainerStyle: { flex: 1 },
+      });
+    } finally {
+      setIsDownloadingSummary(false);
+    }
+  };
 
   // Grid card component
   const StudentCard = ({ item }: { item: Person }) => {
     const getCardColor = () => {
       const colors = [
-        "#B5E7A0", // Light green
-        "#87CEEB", // Sky blue
-        "#FFB6C1", // Light pink
-        "#DDA0DD", // Plum
+        "#CBAACB",
+        "#7EC8E3",
+        "#ADD8E6",
+        "#CBAACB",
+        "#F7E6A1",
+        "#BEE3DB",
+        "#F5C6AA",
+        "#C3AED6",
+        "#A0CED9",
+        "#FFD6A5",
       ];
-      const index = students.findIndex((s) => s.id === item.id);
-      return colors[index % colors.length];
+      if (item.isHosteler) {
+        return "#CBAACB";
+      } else {
+        return "#7EC8E3";
+      }
     };
 
     const cardColor = getCardColor();
@@ -1211,6 +364,12 @@ export default function AttendanceScreen() {
           const newStatus = item.isPresent === "P" ? "A" : "P";
           toggleAttendance(item.id, newStatus);
         }}
+        onLongPress={() => {
+          // Long press = open contact modal
+          setSelectedStudent(item);
+          setContactModalVisible(true);
+        }}
+        delayLongPress={400}
       >
         <View style={styles.cardHeader}>
           <Text style={styles.cardName}>{item.name}</Text>
@@ -1353,6 +512,19 @@ export default function AttendanceScreen() {
       <View style={styles.quickActionBar}>
         <Text style={{ color: theme.text }}>Total: {students.length}</Text>
         <TouchableOpacity
+          onPress={showAllSummaryData}
+          style={{
+            // backgroundColor: "",
+            padding: 4,
+            borderRadius: 10,
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ color: "#1B4332", fontWeight: "600", fontSize: 12 }}>
+            Summary
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           onPress={markAllPresent}
           style={{
             backgroundColor: "#A8D5BA",
@@ -1362,7 +534,7 @@ export default function AttendanceScreen() {
           }}
         >
           <Text style={{ color: "#1B4332", fontWeight: "600", fontSize: 12 }}>
-          Submit All Present
+            Submit All Present
           </Text>
         </TouchableOpacity>
       </View>
@@ -1410,6 +582,208 @@ export default function AttendanceScreen() {
           minimumDate={new Date()}
         />
       )}
+
+      <ContactModal
+        visible={contactModalVisible}
+        student={selectedStudent}
+        onClose={() => {
+          setContactModalVisible(false);
+          setSelectedStudent(null);
+        }}
+        theme={theme}
+      />
+
+      <Modal
+        visible={summaryModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSummaryModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            ref={summaryViewRef}
+            collapsable={false}
+            style={styles.summaryModal}
+          >
+
+            {/* Header */}
+            <View style={styles.summaryHeader}>
+  <Text style={styles.summaryTitle}>
+    Attendance Summary
+  </Text>
+
+  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+    {/* <TouchableOpacity
+      onPress={downloadSummaryAsImage}
+      disabled={isDownloadingSummary}
+    >
+      {isDownloadingSummary ? (
+        <ActivityIndicator
+          size="small"
+          color={theme.primary}
+        />
+      ) : (
+        <Ionicons
+          name="download-outline"
+          size={24}
+          color={theme.text}
+        />
+      )}
+    </TouchableOpacity> */}
+
+    <TouchableOpacity
+      onPress={() => setSummaryModalVisible(false)}
+    >
+      <Ionicons
+        name="close"
+        size={26}
+        color={theme.text}
+      />
+    </TouchableOpacity>
+  </View>
+</View>
+
+
+            {/* Counts */}
+            <View style={styles.summaryCounts}>
+              <View style={styles.summaryCountBox}>
+                <Text style={styles.summaryCountLabel}>
+                  Absent
+                </Text>
+                <Text style={[styles.summaryCount, { color: "#EF4444" }]}>
+                  {students.filter((s) => s.isPresent === "A").length}
+                </Text>
+              </View>
+
+              <View style={styles.summaryCountBox}>
+                <Text style={styles.summaryCountLabel}>
+                  Present
+                </Text>
+                <Text style={[styles.summaryCount, { color: "#10B981" }]}>
+                  {students.filter((s) => s.isPresent === "P").length}
+                </Text>
+              </View>
+
+              <View style={styles.summaryCountBox}>
+                <Text style={styles.summaryCountLabel}>
+                  Total
+                </Text>
+                <Text style={[styles.summaryCount, { color: theme.text }]}>
+                  {students.length}
+                </Text>
+              </View>
+            </View>
+
+            {/* Toggle */}
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>
+                {showPresent ? "Present Students" : "Absent Students"}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => setShowPresent((prev) => !prev)}
+                style={[
+                  styles.toggleButton,
+                  {
+                    backgroundColor: showPresent
+                      ? "#10B981"
+                      : "#EF4444",
+                  },
+                ]}
+              >
+                <Text style={styles.toggleButtonText}>
+                  {showPresent ? "Show Absent" : "Show Present"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Student List */}
+            <FlatList
+              data={students.filter((student) =>
+                showPresent
+                  ? student.isPresent === "P"
+                  : student.isPresent === "A"
+              )}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <View style={styles.noSummaryData}>
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={50}
+                    color="#10B981"
+                  />
+
+                  <Text style={styles.noSummaryText}>
+                    {showPresent
+                      ? "No present students"
+                      : "No absent students"}
+                  </Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <View style={styles.summaryStudentRow}>
+                  {item.image ? (
+                    <Image
+                      source={{ uri: item.image }}
+                      style={styles.cardAvatar2}
+                    />
+                  ) : (
+                    <View style={styles.cardAvatarPlaceholder2}>
+                      <Text style={styles.cardAvatarText}>{item.avatar}</Text>
+                    </View>
+                  )}
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.summaryStudentName}>
+                      {item.name}
+                    </Text>
+
+                    {item.admissionNumber && (
+                      <Text style={styles.summaryStudentInfo}>
+                        Adm No: {item.admissionNumber}
+                      </Text>
+                    )}
+
+                    {item.rollNumber && (
+                      <Text style={styles.summaryStudentInfo}>
+                        Roll No: {item.rollNumber}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View
+                    style={[
+                      styles.summaryStatus,
+                      {
+                        backgroundColor:
+                          item.isPresent === "P"
+                            ? "#DCFCE7"
+                            : "#FEE2E2",
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color:
+                          item.isPresent === "P"
+                            ? "#15803D"
+                            : "#DC2626",
+                        fontWeight: "700",
+                        fontSize: 12,
+                      }}
+                    >
+                      {item.isPresent === "P"
+                        ? "Present"
+                        : "Absent"}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1532,9 +906,27 @@ function getStyles(theme: Theme) {
       borderWidth: 3,
       borderColor: "rgba(255, 255, 255, 0.5)",
     },
+    cardAvatar2: {
+      width: 70,
+      height: 70,
+      borderRadius: 50,
+      backgroundColor: "rgba(255, 255, 255, 0.3)",
+      borderWidth: 3,
+      borderColor: "rgba(255, 255, 255, 0.5)",
+    },
     cardAvatarPlaceholder: {
       width: 100,
       height: 100,
+      borderRadius: 50,
+      backgroundColor: "rgba(255, 255, 255, 0.3)",
+      borderWidth: 3,
+      borderColor: "rgba(255, 255, 255, 0.5)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    cardAvatarPlaceholder2: {
+      width: 70,
+      height: 70,
       borderRadius: 50,
       backgroundColor: "rgba(255, 255, 255, 0.3)",
       borderWidth: 3,
@@ -2062,6 +1454,142 @@ function getStyles(theme: Theme) {
       fontSize: 12,
       color: "#666",
       marginTop: 4,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "flex-end",
+    },
+
+    summaryModal: {
+      backgroundColor: theme.background,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: 20,
+      maxHeight: "85%",
+    },
+
+    summaryHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 20,
+    },
+
+    summaryTitle: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: theme.text,
+    },
+
+    summaryCounts: {
+      flexDirection: "row",
+      gap: 10,
+      marginBottom: 20,
+    },
+
+    summaryCountBox: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 12,
+      backgroundColor: theme.mode === "dark" ? "#27272A" : "#F3F4F6",
+      alignItems: "center",
+    },
+
+    summaryCountLabel: {
+      fontSize: 12,
+      color: theme.text,
+      opacity: 0.7,
+      marginBottom: 4,
+    },
+
+    summaryCount: {
+      fontSize: 22,
+      fontWeight: "800",
+    },
+
+    toggleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 15,
+      paddingVertical: 10,
+    },
+
+    toggleLabel: {
+      flex: 1,
+      color: theme.text,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+
+    toggleButton: {
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      borderRadius: 20,
+    },
+
+    toggleButtonText: {
+      color: "#fff",
+      fontSize: 12,
+      fontWeight: "700",
+    },
+
+    summaryStudentRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor:
+        theme.mode === "dark" ? "#3F3F46" : "#E5E7EB",
+    },
+
+    summaryAvatar: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: "#7EC8E3",
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 12,
+    },
+
+    summaryAvatarText: {
+      fontSize: 17,
+      fontWeight: "700",
+      color: "#fff",
+    },
+
+    summaryStudentName: {
+      color: theme.text,
+      fontSize: 15,
+      fontWeight: "700",
+    },
+
+    summaryStudentInfo: {
+      color: theme.text,
+      opacity: 0.6,
+      fontSize: 11,
+      marginTop: 2,
+    },
+
+    summaryStatus: {
+      paddingHorizontal: 9,
+      paddingVertical: 5,
+      borderRadius: 10,
+    },
+
+    noSummaryData: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 40,
+    },
+
+    noSummaryText: {
+      color: theme.text,
+      marginTop: 10,
+      fontSize: 15,
+      fontWeight: "600",
     },
   });
 

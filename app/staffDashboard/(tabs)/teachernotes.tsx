@@ -1,7 +1,6 @@
 import { RootState } from "@/action/store";
 import { ThemeContext } from "@/action/theme/ThemeContext";
 import { Theme } from "@/action/theme/themeReducer";
-import { NoteCard } from "@/components/NoteCard";
 import {
   DayType,
   NoteStatus,
@@ -24,6 +23,7 @@ import {
   View
 } from "react-native";
 import { useSelector } from "react-redux";
+import { NoteCard } from "../../../components/NoteCard";
 
 export default function TeacherNotesScreen() {
   const themeState = useContext(ThemeContext);

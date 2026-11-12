@@ -9,7 +9,6 @@
       "krinexiya"
     ],
     "userInterfaceStyle": "automatic",
-    // "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.krinexiya.stkabirseminaryjoram",
@@ -24,7 +23,6 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#E6F4FE"
       },
-      // "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -47,7 +45,8 @@
       ],
       "expo-sqlite",
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

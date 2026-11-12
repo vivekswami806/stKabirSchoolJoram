@@ -47,20 +47,20 @@ export const handleLogin = async (
     );
 
     const {token, expiresIn, forcePasswordChange, message, success, tenant, role, staffId, profile, requirePinSetup, refreshToken} = response.data;
-      // console.log("--res/data login|", response.data, response.data.forcePasswordChange);
+      console.log("--res/data login|", response.data, response.data.forcePasswordChange);
     
-     if(role == "STAFF" || role == "TEACHER") {
-      if (forcePasswordChange || requirePinSetup ) {
-        ToastService.show({
-          type: "info",
-          message: "Password Change Required ",
-          duration: 3000,
-          contentContainerStyle: { flex: 1 },
-        });
+    //  if(role == "STAFF" || role == "TEACHER") {
+    //   if (forcePasswordChange || requirePinSetup ) {
+    //     ToastService.show({
+    //       type: "info",
+    //       message: "Password Change Required ",
+    //       duration: 3000,
+    //       contentContainerStyle: { flex: 1 },
+    //     });
         // router.replace('/(auth)/resetstaffpassword');
         // return;
-      }
-     } 
+    //   }
+    //  } 
     //  else if (role == "PARENT") {
     //   if (forcePasswordChange || requirePinSetup ) {
     //     ToastService.show({
@@ -97,7 +97,7 @@ export const handleLogin = async (
       expiresAt,
       refreshToken: refreshToken ? refreshToken: ""
     };
-    // console.log("authData| studentLogin|", authCredentials);
+     console.log("authData| studentLogin|", authCredentials);
 
     await saveAuthCredentials(authCredentials);
     //  console.log("✓ Token saved to storage");

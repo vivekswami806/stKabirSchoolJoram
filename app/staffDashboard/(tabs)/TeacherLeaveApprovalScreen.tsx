@@ -400,7 +400,7 @@ export default function TeacherLeaveApprovalScreen() {
                     </View>
 
                     <View style={styles.statusContainer}>
-                      <Text style={styles.statusLabel}>Submit as:</Text>
+                      <Text style={styles.statusLabel}>Mark as:</Text>
 
                       <View
                         style={[

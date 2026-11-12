@@ -14,6 +14,8 @@ export interface FilePreviewData {
   isImage: boolean;
   isPdf: boolean;
   isDocument: boolean;
+  isExcel: boolean;
+  base64?: string;
 }
 
 const isImageFile = (fileName: string): boolean => {
@@ -32,21 +34,33 @@ const isDocumentFile = (fileName: string): boolean => {
   const ext = fileName.split('.').pop()?.toLowerCase();
   return docExtensions.includes(ext || '');
 };
+const isExcelFile = (fileName: string): boolean => {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  return ["xls", "xlsx", "csv"].includes(ext || "");
+};
+
+const isWordFile = (fileName: string): boolean => {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  return ["doc", "docx"].includes(ext || "");
+};
 
 const getFileType = (fileName: string): string => {
-  const ext = fileName.split('.').pop()?.toLowerCase();
+  const ext = fileName.split(".").pop()?.toLowerCase();
+
   switch (ext) {
-    case 'pdf':
-      return 'PDF';
-    case 'doc':
-    case 'docx':
-      return 'Document';
-    case 'jpg':
-    case 'jpeg':
-    case 'png':
-      return 'Image';
-    default:
-      return 'File';
+    case "pdf": return "PDF";
+    case "doc": return "Word Document";
+    case "docx": return "Word Document";
+    case "xls": return "Excel Spreadsheet";
+    case "xlsx": return "Excel Spreadsheet";
+    case "csv": return "CSV Spreadsheet";
+    case "jpg":
+    case "jpeg":
+    case "png":
+    case "gif":
+    case "webp":
+      return "Image";
+    default: return "File";
   }
 };
 
@@ -111,18 +125,24 @@ export const downloadAttachment = async (
       },
     });
 
-    // Prepare preview data
-    const previewData: FilePreviewData = {
-      uri,
-      fileName,
-      fileType: getFileType(fileName),
-      isImage: isImageFile(fileName),
-      isPdf: isPdfFile(fileName),
-      isDocument: isDocumentFile(fileName),
-    };
+  const ext = fileName.split(".").pop()?.toLowerCase();
 
-    // Call callback to show in-app preview
-    onPreviewReady(previewData);
+const base64 = await FileSystem.readAsStringAsync(uri, {
+  encoding: FileSystem.EncodingType.Base64,
+});
+
+const previewData: FilePreviewData = {
+  uri,
+  fileName,
+  fileType: getFileType(fileName),
+  isImage: isImageFile(fileName),
+  isPdf: isPdfFile(fileName),
+  isDocument: isWordFile(fileName),
+  isExcel: isExcelFile(fileName),
+  base64,
+};
+
+onPreviewReady(previewData);
   } catch (error) {
     console.error("Download error:", error);
     const msg = "Failed to open file";

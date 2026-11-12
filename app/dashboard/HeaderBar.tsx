@@ -335,7 +335,7 @@ function getStyles(theme: Theme) {
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 24,
-      paddingTop: Platform.OS === 'ios' ? 40 : 50,
+      paddingTop: Platform.OS === 'ios' ? 40 : 30,
       paddingBottom: 4,
       backgroundColor: 'transparent',
     },

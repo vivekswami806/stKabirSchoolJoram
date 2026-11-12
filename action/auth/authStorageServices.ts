@@ -136,3 +136,86 @@ export const getTokenLifetime = async (): Promise<number> => {
     return 0;
   }
 };
+
+
+
+
+// // action/auth/authStorageServices.ts
+// import { API_BASE_URL } from "@/config";
+// import AsyncStorage from "@react-native-async-storage/async-storage";
+// import axios from "axios";
+
+// export interface AuthCredentials {
+//   token: string;
+//   refreshToken?: string;
+//   tenantId: string;
+//   loginId: string;
+//   role: string;
+//   expiresAt: number;
+// }
+
+// const AUTH_KEY = "@app_auth_credentials";
+
+// export const saveAuthCredentials = async (
+//   credentials: AuthCredentials
+// ): Promise<void> => {
+//   try {
+//     await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(credentials));
+//   } catch (error) {
+//     console.error("Error saving auth credentials:", error);
+//     throw error;
+//   }
+// };
+
+// export const getAuthCredentials = async (): Promise<AuthCredentials | null> => {
+//   try {
+//     const stored = await AsyncStorage.getItem(AUTH_KEY);
+//     console.log(stored);
+    
+//     return stored ? JSON.parse(stored) : null;
+//   } catch (error) {
+//     console.error("Error retrieving auth credentials:", error);
+//     return null;
+//   }
+// };
+
+// export const isTokenExpired = async (): Promise<boolean> => {
+//   const credentials = await getAuthCredentials();
+//   if (!credentials) return true;
+//   return Date.now() >= credentials.expiresAt;
+// };
+
+// export const clearAuthStorage = async (): Promise<void> => {
+//   try {
+//     await AsyncStorage.removeItem(AUTH_KEY);
+//   } catch (error) {
+//     console.error("Error clearing auth storage:", error);
+//   }
+// };
+
+// export const refreshAuthToken = async (
+//   refreshToken: string,
+//   deviceId: string
+// ): Promise<{ token: string; refreshToken: string; expiresIn: number } | null> => {
+//   try {
+
+//     const response = await axios.post(
+//       `${API_BASE_URL}parent/auth/refresh-token`,
+//       { refreshToken, deviceId },
+//       { timeout: 10000 }
+//     );
+//     console.log(response.data);
+    
+//     if (response.data.success) {
+//       return {
+//         token: response.data.token,
+//         refreshToken: response.data.refreshToken,
+//         expiresIn: response.data.expiresIn,
+//       };
+//     }
+//     return null;
+//   } catch (error) {
+//     console.error("Error refreshing token:", error);
+//     return null;
+//   }
+// };

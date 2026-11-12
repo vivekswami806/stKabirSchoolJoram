@@ -1,12 +1,11 @@
 import { API_BASE_URL } from "@/config";
-import { downloadAndHandleFile } from "@/helper/downloadFile";
 import { getDeviceId } from "@/helper/getDeviceId";
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { Buffer } from "buffer";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   FlatList,
   Image,
@@ -16,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
+import { downloadAndHandleFile } from "../../../../components/downloadfolder";
 
 interface FileItem {
   id: string;

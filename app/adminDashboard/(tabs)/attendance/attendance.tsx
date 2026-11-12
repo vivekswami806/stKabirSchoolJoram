@@ -1,569 +1,8 @@
-// import { Ionicons } from "@expo/vector-icons";
-// import axios from "axios";
-// import { Buffer } from "buffer";
-// import { router } from "expo-router";
-// import React, { useCallback, useContext, useEffect, useState } from "react";
-// import {
-//   ActivityIndicator,
-//   FlatList,
-//   Image,
-//   Platform,
-//   StyleSheet,
-//   Text,
-//   TouchableOpacity,
-//   View,
-// } from "react-native";
-
-// import { ThemeContext } from "@/action/theme/ThemeContext";
-
-// import { RootState } from "@/action/store";
-// import { Theme } from "@/action/theme/themeReducer";
-// import { API_BASE_URL, classes, sections } from "@/config";
-// import { getDeviceId } from "@/helper/getDeviceId";
-// import { RoleMode } from "@/types/leave";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
-// import DateTimePicker from "@react-native-community/datetimepicker";
-// import { ToastService } from "react-native-toastier";
-// import { useSelector } from "react-redux";
-// import ErrorRetry from "../components/ErrorRetry";
-// import StudentFilters from "../components/StudentFilters";
-// import LeaveSkeleton from "../leave/LeaveSkeleton";
-
-// interface Person {
-//   id: string;
-//   name: string;
-//   avatar?: string;
-//   image?: string | null;
-//   isPresent: "A" | "P";
-//   synced?: boolean;
-//   attendanceMarked?: boolean;
-//   studentClass?: string;
-//   section?: string;
-//   admissionNumber?: string;
-//   rollNumber?: string;
-// }
-
-// // Local date helper
-// const formatDateLocal = (date: Date) => {
-//   const offset = date.getTimezoneOffset();
-//   const localDate = new Date(date.getTime() - offset * 60000);
-//   return localDate.toISOString().split("T")[0];
-// };
-
-// export default function AttendanceScreen() {
-//   const [activeTab, setActiveTab] = useState<"students" | "teacher">("students");
-//   const [roleMode, setRoleMode] = useState<RoleMode>("PARENT");
-//   const { userDetail } = useSelector((state: RootState) => state.user);
-//   const [dateObj, setDateObj] = useState(new Date());
-//   const [selectedDateStr, setSelectedDateStr] = useState(formatDateLocal(new Date()));
-//   const [showDatePicker, setShowDatePicker] = useState(false);
-//   const [selectedClass, setSelectedClass] = useState<string>("pnc");
-//   const [selectedSection, setSelectedSection] = useState<string>("A");
-//   const [students, setStudents] = useState<Person[]>([]);
-//   const [isLoading, setIsLoading] = useState(false);
-//   const [isSyncing, setIsSyncing] = useState(false);
-//   const [pendingCount, setPendingCount] = useState(0);
-//   const [classModalVisible, setClassModalVisible] = useState(false);
-//   const [sectionModalVisible, setSectionModalVisible] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-
-//   const [pendingChanges, setPendingChanges] = useState<
-//     Map<
-//       string,
-//       {
-//         studentId: string;
-//         ownerId: string;
-//         date: string;
-//         status: "A" | "P";
-//         markedBy: string;
-//         attendanceMarked: Boolean;
-//       }
-//     >
-//   >(new Map());
-
-//   const themeState = useContext(ThemeContext);
-//   if (!themeState) return null;
-//   const { theme } = themeState;
-
-//   const styles = getStyles(theme);
-
-//   // Load students when class or date changes
-//   useEffect(() => {
-//     loadStudentsData();
-//   }, [selectedClass, selectedSection, roleMode]);
-
-//   const loadStudentsData = async () => {
-//     try {
-//       setIsLoading(true);
-
-//       const encodedTenant = await AsyncStorage.getItem("auth_tenant");
-//       const token = await AsyncStorage.getItem("auth_token");
-//       const deviceId = await getDeviceId();
-//       if (!encodedTenant || !token) return;
-
-//       const tenantId = Buffer.from(encodedTenant, "base64").toString("utf-8");
-//       const url =
-//         roleMode === "PARENT"
-//           ? `${API_BASE_URL}attendance/admin/students-for-attendance?date=${selectedDateStr}&studentClass=${selectedClass}&section=${selectedSection}`
-//           : `${API_BASE_URL}v2/attendance/staff-for-attendance`;
-
-//       const response = await axios.get(url, {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//           "X-Tenant-ID": tenantId,
-//           "X-Device-ID": deviceId,
-//         },
-//       });
-//       console.log("---resp|", response.data[5]);
-
-//       const newPendingChanges = new Map();
-//       const studentsData: Person[] = response.data.map((s: any) => {
-
-//         const status: "A" | "P" = s.marked ? (s.status as "A" | "P") : "A";
-//         const isMarked = s.marked;
-
-//         if (roleMode === "PARENT") {
-//           if (!isMarked) {
-//             const key = `${s.studentId}_${selectedDateStr}`;
-//             newPendingChanges.set(key, {
-//               studentId: s.studentId,
-//               date: selectedDateStr,
-//               status: "A",
-//               markedBy: userDetail.id,
-//               attendanceMarked: true,
-//               ownerId: userDetail.id,
-//             });
-//           }
-//           return {
-//             id: s.studentId,
-//             name: s.studentName,
-//             avatar: s.studentName?.charAt(0) ?? "",
-//             image: s.studentImage
-//               ? `data:image/png;base64,${s.studentImage}`
-//               : null,
-//             isPresent: status,
-//             synced: true,
-//             attendanceMarked: s.attendanceMarked,
-//             admissionNumber: s.admissionNumber,
-//             rollNumber: s.rollNumber,
-//             studentClass: s.studentClass,
-//             section: s.section,
-//           };
-//         } else {
-//           if (!isMarked) {
-//             const key = `${s.staffId}_${selectedDateStr}`;
-//             newPendingChanges.set(key, {
-//               studentId: s.staffId,
-//               date: selectedDateStr,
-//               status: "A",
-//               markedBy: userDetail.id,
-//               attendanceMarked: true,
-//               ownerId: userDetail.id,
-//             });
-//           }
-//           return {
-//             id: s.staffId,
-//             name: s.staffName,
-//             avatar: s.staffName?.charAt(0) ?? "",
-//             image: s.staffImage
-//               ? `data:image/png;base64,${s.staffImage}`
-//               : null,
-//             isPresent: status,
-//             synced: true,
-//             attendanceMarked: s.attendanceMarked,
-//           };
-//         }
-//       });
-
-//       setStudents(studentsData);
-//       setPendingChanges(newPendingChanges);
-//       setPendingCount(newPendingChanges.size);
-//     } catch (error: any) {
-//       setError("Failed to load leave requests");
-//       ToastService.show({
-//         type: "danger",
-//         message: error,
-//         duration: 3000,
-//         contentContainerStyle: { flex: 1 },
-//       });
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   const toggleAttendance = useCallback(
-//     (id: string, status: "A" | "P") => {
-//       setStudents((prev) =>
-//         prev.map((s) =>
-//           s.id === id ? { ...s, isPresent: status, synced: false } : s
-//         )
-//       );
-
-//       const key = `${id}_${selectedDateStr}`;
-//       setPendingChanges((prev) => {
-//         const map = new Map(prev);
-//         map.set(key, {
-//           studentId: id,
-//           ownerId: id,
-//           date: selectedDateStr,
-//           status,
-//           markedBy: userDetail.id,
-//           attendanceMarked: true,
-//         });
-//         setPendingCount(map.size);
-//         return map;
-//       });
-//     },
-//     [selectedDateStr, userDetail.id]
-//   );
-
-//   const markAllPresent = () => {
-//     const updated: Person[] = students.map((s) => ({
-//       ...s,
-//       isPresent: "P",
-//       synced: false,
-//     }));
-
-//     setStudents(updated);
-
-//     const map = new Map(pendingChanges);
-
-//     updated.forEach((s) => {
-//       const key = `${s.id}_${selectedDateStr}`;
-//       map.set(key, {
-//         ownerId: s.id,
-//         studentId: s.id,
-//         date: selectedDateStr,
-//         status: "P",
-//         markedBy: userDetail.id,
-//         attendanceMarked: true,
-//       });
-//     });
-
-//     setPendingChanges(map);
-//     setPendingCount(map.size);
-//   };
-
-//   const handleManualSync = async () => {
-//     try {
-//       setIsSyncing(true);
-
-//       const encodedTenant = await AsyncStorage.getItem("auth_tenant");
-//       const token = await AsyncStorage.getItem("auth_token");
-//       const deviceId = await getDeviceId();
-//       if (!encodedTenant || !token) return;
-
-//       const tenantId = Buffer.from(encodedTenant, "base64").toString("utf-8");
-
-//       const attendanceArray = students.map((s) => ({
-//         ownerId: s.id,
-//         studentId: s.id,
-//         date: selectedDateStr,
-//         status: s.isPresent,
-//         markedBy: userDetail.id,
-//         attendanceMarked: true,
-//       }));
-
-//       let url =
-//         roleMode === "PARENT"
-//           ? `${API_BASE_URL}attendance/markBulkAttendance`
-//           : `${API_BASE_URL}v2/attendance/markBulkAttendanceByOwnerType`;
-
-//       await axios.post(url, attendanceArray, {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//           "X-Tenant-ID": tenantId,
-//           "X-Device-ID": deviceId,
-//         },
-//       });
-
-//       ToastService.show({
-//         type: "success",
-//         message: "Attendance marked successfully",
-//         duration: 3000,
-//         contentContainerStyle: { flex: 1 },
-//       });
-
-//       await loadStudentsData();
-//       setPendingChanges(new Map());
-//       setPendingCount(0);
-//     } catch (e: any) {
-//       console.log("Sync error:", e);
-//       ToastService.show({
-//         type: "danger",
-//         message: "Failed to sync attendance",
-//         duration: 3000,
-//         contentContainerStyle: { flex: 1 },
-//       });
-//     } finally {
-//       setIsSyncing(false);
-//     }
-//   };
-
-//   const onDateChange = (_: any, date?: Date) => {
-//     setShowDatePicker(false);
-//     if (date) {
-//       setDateObj(date);
-//       setSelectedDateStr(formatDateLocal(date));
-//     }
-//   };
-
-//   // Grid card component
-//   const StudentCard = ({ item }: { item: Person }) => {
-//     const getCardColor = () => {
-//       const colors = [
-//         "#A8D5BA", // soft green
-//         "#7EC8E3", // soft blue
-//         "#F4A6B0", // soft pink
-//         "#CBAACB", // muted purple
-//         "#F7E6A1", // soft yellow
-//         "#BEE3DB", // mint
-//         "#F5C6AA", // peach
-//         "#C3AED6", // lavender
-//         "#A0CED9", // calm blue
-//         "#FFD6A5", // light orange
-//       ];
-//       const index = students.findIndex((s) => s.id === item.id);
-//       return colors[index % colors.length];
-//     };
-
-//     const cardColor = getCardColor();
-//     const isDark = theme.mode === "dark";
-
-//     return (
-//       <TouchableOpacity
-//         style={[
-//           styles.studentCard,
-//           { backgroundColor: cardColor },
-//         ]}
-//         onPress={() => {
-//           const newStatus = item.isPresent === "P" ? "A" : "P";
-//           toggleAttendance(item.id, newStatus);
-//         }}
-//       >
-//         <View style={styles.cardHeader}>
-//           <Text style={styles.cardName}>{item.name}</Text>
-//         </View>
-
-//         <View style={styles.cardContent}>
-//           <View style={styles.avatarContainer}>
-//             {item.image ? (
-//               <Image
-//                 source={{ uri: item.image }}
-//                 style={styles.cardAvatar}
-//               />
-//             ) : (
-//               <View style={styles.cardAvatarPlaceholder}>
-//                 <Text style={styles.cardAvatarText}>{item.avatar}</Text>
-//               </View>
-//             )}
-
-//             {/* Status Badge */}
-//             {item.isPresent === "A" && (
-//               <View style={styles.statusBadge}>
-//                 <Text style={styles.statusBadgeText}>Absent</Text>
-//               </View>
-//             )}
-//           </View>
-//         </View>
-
-//         <View style={styles.cardFooter}>
-//           {item.admissionNumber && (
-//             <Text style={styles.cardInfoText}>
-//               Adm No.: {item.admissionNumber}
-//             </Text>
-//           )}
-//           {item.rollNumber && (
-//             <Text style={styles.cardInfoText}>
-//               Roll No.: {item.rollNumber}
-//             </Text>
-//           )}
-//         </View>
-
-//         {/* Attendance indicator dot */}
-//         <View
-//           style={[
-//             styles.attendanceIndicator,
-//             {
-//               backgroundColor:
-//                 item.isPresent === "P" ? "#10B981" : "#EF4444",
-//             },
-//           ]}
-//         />
-//       </TouchableOpacity>
-//     );
-//   };
-
-//   return (
-//     <View style={styles.container}>
-//       <View style={styles.header}>
-//         <TouchableOpacity onPress={() => router.replace("/(tabs)/home")}>
-//           <Ionicons
-//             name="arrow-back"
-//             size={26}
-//             style={styles.backButton}
-//           />
-//         </TouchableOpacity>
-
-//         <Text style={styles.headerTitle}>Attendance</Text>
-
-//         <View style={styles.toggleContainer}>
-//           <TouchableOpacity onPress={() => setRoleMode("PARENT")}>
-//             <Ionicons
-//               name="people"
-//               size={24}
-//               color={roleMode === "PARENT" ? "#3B82F6" : "#9CA3AF"}
-//             />
-//           </TouchableOpacity>
-//           <TouchableOpacity onPress={() => setRoleMode("STAFF")}>
-//             <Ionicons
-//               name="school"
-//               size={24}
-//               color={roleMode === "STAFF" ? "#3B82F6" : "#9CA3AF"}
-//             />
-//           </TouchableOpacity>
-//         </View>
-
-//         <TouchableOpacity
-//           onPress={handleManualSync}
-//           disabled={isSyncing}
-//           style={{
-//             flexDirection: "row",
-//             alignItems: "center",
-//             backgroundColor: theme.primary,
-//             paddingVertical: 6,
-//             paddingHorizontal: 12,
-//             borderRadius: 20,
-//             shadowColor: "#000",
-//             shadowOffset: { width: 0, height: 2 },
-//             shadowOpacity: 0.25,
-//             shadowRadius: 3.84,
-//             elevation: 5,
-//           }}
-//         >
-//           {isSyncing ? (
-//             <ActivityIndicator size="small" color="#fff" />
-//           ) : (
-//             <>
-//               <Ionicons
-//                 name="cloud-upload-outline"
-//                 size={18}
-//                 color="#fff"
-//               />
-//               <Text
-//                 style={{
-//                   color: theme.buttonText,
-//                   fontWeight: "600",
-//                   marginLeft: 6,
-//                 }}
-//               >
-//                 Mark
-//               </Text>
-
-//               {pendingCount > 0 && (
-//                 <View
-//                   style={{
-//                     borderRadius: 10,
-//                     marginLeft: 6,
-//                     minWidth: 20,
-//                     paddingHorizontal: 6,
-//                     alignItems: "center",
-//                   }}
-//                 >
-//                   <Text
-//                     style={{
-//                       color: theme.buttonText,
-//                       fontSize: 12,
-//                       fontWeight: "bold",
-//                     }}
-//                   >
-//                     {pendingCount}
-//                   </Text>
-//                 </View>
-//               )}
-//             </>
-//           )}
-//         </TouchableOpacity>
-//       </View>
-
-//       {roleMode === "PARENT" ? (
-//         <StudentFilters
-//           styles={styles}
-//           selectedDateStr={selectedDateStr}
-//           classModalVisible={classModalVisible}
-//           setClassModalVisible={setClassModalVisible}
-//           sectionModalVisible={sectionModalVisible}
-//           setSectionModalVisible={setSectionModalVisible}
-//           classOptions={classes}
-//           sectionOptions={sections}
-//           selectedClass={selectedClass}
-//           setSelectedClass={setSelectedClass}
-//           selectedSection={selectedSection}
-//           setSelectedSection={setSelectedSection}
-//           role="ADMIN"
-//           onDatePress={() => setShowDatePicker(true)}
-//         />
-//       ) : null}
-
-//       <View style={styles.quickActionBar}>
-//         <Text style={styles.totalText}>Total: {students.length}</Text>
-//         <TouchableOpacity onPress={markAllPresent}>
-//           <Text style={{ color: theme.primary }}>Mark All Present</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {isLoading ? (
-//         <LeaveSkeleton isDark={theme.mode == "dark" ? true : false} />
-//       ) : error ? (
-//         <ErrorRetry
-//           message={error}
-//           isDark={false}
-//           onRetry={() => loadStudentsData()}
-//         />
-//       ) : students.length === 0 ? (
-//         <View style={styles.emptyContainer}>
-//           <Ionicons
-//             name="document-text-outline"
-//             size={80}
-//             color={"#6B7280"}
-//             style={styles.emptyIcon}
-//           />
-//           <Text style={styles.emptyTitle}>No Student</Text>
-//           <Text style={styles.emptySubtitle}>
-//             There are no attendance  to show.
-//           </Text>
-//         </View>
-//       ) : (
-//         <FlatList
-//           data={students}
-//           keyExtractor={(item) => item.id}
-//           numColumns={2}
-//           columnWrapperStyle={styles.columnWrapper}
-//           contentContainerStyle={styles.gridContainer}
-//           scrollEnabled={true}
-//           renderItem={({ item }) => <StudentCard item={item} />}
-//         />
-//       )}
-
-//       {showDatePicker && (
-//         <DateTimePicker
-//           value={dateObj}
-//           mode="date"
-//           display={Platform.OS === "ios" ? "spinner" : "default"}
-//           onChange={onDateChange}
-//           maximumDate={new Date()}
-//         />
-//       )}
-//     </View>
-//   );
-// }
-
-
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { Buffer } from "buffer";
 import { router } from "expo-router";
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -571,6 +10,7 @@ import {
   Platform,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
@@ -578,6 +18,7 @@ import {
 import { RootState } from "@/action/store";
 import { ThemeContext } from "@/action/theme/ThemeContext";
 import { Theme } from "@/action/theme/themeReducer";
+import { ContactModal } from "@/components/ContactModal";
 import { API_BASE_URL, classes, sections } from "@/config";
 import { getDeviceId } from "@/helper/getDeviceId";
 import { RoleMode } from "@/types/leave";
@@ -588,7 +29,6 @@ import { useSelector } from "react-redux";
 import ErrorRetry from "../components/ErrorRetry";
 import StudentFilters from "../components/StudentFilters";
 import LeaveSkeleton from "../leave/LeaveSkeleton";
-import { ContactModal } from "./ContactModal";
 import AttendanceSummaryModal from "./attendanceSummary";
 
 interface Person {
@@ -613,8 +53,6 @@ const formatDateLocal = (date: Date) => {
   return localDate.toISOString().split("T")[0];
 };
 
-
-
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function AttendanceScreen() {
   const [roleMode, setRoleMode] = useState<RoleMode>("PARENT");
@@ -634,6 +72,9 @@ export default function AttendanceScreen() {
   const [summaryVisible, setSummaryVisible] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryData, setSummaryData] = useState<any[]>([]);
+  const [searchText, setSearchText] = useState("");
+  const [attendanceFilter, setAttendanceFilter] = useState<"ALL" | "P" | "A">("ALL");
+
 
   // Contact modal state
   const [selectedStudent, setSelectedStudent] = useState<Person | null>(null);
@@ -676,7 +117,7 @@ export default function AttendanceScreen() {
       const url =
         roleMode === "PARENT"
           ? `${API_BASE_URL}attendance/admin/students-for-attendance?date=${selectedDateStr}&studentClass=${selectedClass}&section=${selectedSection}`
-          : `${API_BASE_URL}v2/attendance/staff-for-attendance`;
+          : `${API_BASE_URL}v2/attendance/staff-for-attendance?date=${selectedDateStr}`;
 
       const response = await axios.get(url, {
         headers: {
@@ -767,6 +208,22 @@ export default function AttendanceScreen() {
     }
   };
 
+  const filteredStudents = students.filter((student) => {
+    const search = searchText.toLowerCase().trim();
+  
+    const matchesSearch =
+      !search ||
+      student.name?.toLowerCase().includes(search) ||
+      student.number?.toLowerCase().includes(search) ||
+      student.admissionNumber?.toLowerCase().includes(search) ||
+      student.rollNumber?.toLowerCase().includes(search);
+  
+    const matchesAttendance = attendanceFilter === "ALL" || student.isPresent === attendanceFilter;
+  
+    return matchesSearch && matchesAttendance;
+  });
+  
+
   const loadAttendanceSummary = async () => {
     try {
       setSummaryLoading(true);
@@ -788,7 +245,7 @@ export default function AttendanceScreen() {
           },
         }
       );
-      
+
       setSummaryData(response.data);
       setSummaryVisible(true);
     } catch (error: any) {
@@ -1056,7 +513,7 @@ export default function AttendanceScreen() {
             <>
               <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
               <Text style={{ color: theme.buttonText, fontWeight: "600", marginLeft: 6 }}>
-                Mark
+                Submit
               </Text>
               {pendingCount > 0 && (
                 <View
@@ -1096,16 +553,103 @@ export default function AttendanceScreen() {
           role="ADMIN"
           onDatePress={() => setShowDatePicker(true)}
         />
-      ) : null}
+      ) : (
+        <View style={styles.staffFilterRow}>
+
+          {/* Search */}
+          <View style={styles.staffSearchBox}>
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color="#9CA3AF"
+            />
+
+            <TextInput
+              value={searchText}
+              onChangeText={setSearchText}
+              placeholder="Search ..."
+              placeholderTextColor="#9CA3AF"
+              style={styles.staffSearchInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            {searchText.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchText("")}>
+                <Ionicons
+                  name="close-circle"
+                  size={17}
+                  color="#9CA3AF"
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity
+  style={[
+    styles.staffFilterButton,
+    {
+      backgroundColor:
+        attendanceFilter === "P"
+          ? "#10B981"
+          : attendanceFilter === "A"
+            ? "#EF4444"
+            : "#FFFFFF",
+      borderColor:
+        attendanceFilter === "P"
+          ? "#10B981"
+          : attendanceFilter === "A"
+            ? "#EF4444"
+            : "#E5E7EB",
+    },
+  ]}
+  onPress={() => {
+    setAttendanceFilter((current) => {
+      if (current === "ALL") return "P";
+      if (current === "P") return "A";
+      return "ALL";
+    });
+  }}
+  activeOpacity={0.7}
+>
+  <Ionicons
+    name="filter"
+    size={17}
+    color={attendanceFilter === "ALL" ? "#6B7280" : "#FFFFFF"}
+  />
+</TouchableOpacity>
+
+
+          {/* Date */}
+          <TouchableOpacity
+            style={styles.staffDateBox}
+            onPress={() => setShowDatePicker(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="calendar-outline"
+              size={17}
+              color="#9CA3AF"
+            />
+
+            <Text style={styles.staffDateText}>
+              {selectedDateStr}
+            </Text>
+          </TouchableOpacity>
+
+        </View>
+      )}
 
       {/* Quick Actions */}
       <View style={styles.quickActionBar}>
-        <Text style={styles.totalText}>Total: {students.length}</Text>
+        <Text style={styles.totalText}>
+          Total: {filteredStudents.length}
+        </Text>
         <TouchableOpacity onPress={loadAttendanceSummary}>
           <Text style={styles.totalText}>Summary</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={markAllPresent}>
-          <Text style={{ color: theme.primary }}>Mark All Present</Text>
+          <Text style={{ color: theme.primary }}>Submit All Present</Text>
         </TouchableOpacity>
       </View>
 
@@ -1113,8 +657,12 @@ export default function AttendanceScreen() {
       {isLoading ? (
         <LeaveSkeleton isDark={theme.mode === "dark"} />
       ) : error ? (
-        <ErrorRetry message={error} isDark={false} onRetry={loadStudentsData} />
-      ) : students.length === 0 ? (
+        <ErrorRetry
+          message={error}
+          isDark={false}
+          onRetry={loadStudentsData}
+        />
+      ) : filteredStudents.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons
             name="document-text-outline"
@@ -1122,18 +670,28 @@ export default function AttendanceScreen() {
             color="#6B7280"
             style={styles.emptyIcon}
           />
-          <Text style={styles.emptyTitle}>No Students</Text>
-          <Text style={styles.emptySubtitle}>There are no attendance records to show.</Text>
+
+          <Text style={styles.emptyTitle}>
+            {searchText ? "No Staff Found" : "No Data"}
+          </Text>
+
+          <Text style={styles.emptySubtitle}>
+            {searchText
+              ? "No staff members match your search."
+              : "There are no attendance records to show."}
+          </Text>
         </View>
       ) : (
         <FlatList
-          data={students}
+          data={filteredStudents}
           keyExtractor={(item) => item.id}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
           contentContainerStyle={styles.gridContainer}
           scrollEnabled={true}
-          renderItem={({ item }) => <StudentCard item={item} />}
+          renderItem={({ item }) => (
+            <StudentCard item={item} />
+          )}
         />
       )}
 
@@ -1163,7 +721,7 @@ export default function AttendanceScreen() {
         visible={summaryVisible}
         loading={summaryLoading}
         data={summaryData}
-        roleMode ={roleMode}
+        roleMode={roleMode}
         onClose={() => setSummaryVisible(false)}
       />
 
@@ -1826,6 +1384,67 @@ function getStyles(theme: Theme) {
       color: "#666",
       marginTop: 4,
     },
+
+    staffFilterRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 12,
+      paddingTop: 8,
+      paddingBottom: 6,
+      gap: 8,
+    },
+
+    staffSearchBox: {
+      flex: 1,
+      height: 36,
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "#FFFFFF",
+      borderWidth: 1,
+      borderColor: "#E5E7EB",
+      borderRadius: 8,
+      paddingHorizontal: 10,
+    },
+
+    staffSearchInput: {
+      flex: 1,
+      height: 36,
+      marginLeft: 7,
+      paddingVertical: 0,
+      color: "#374151",
+      fontSize: 13,
+    },
+
+    staffDateBox: {
+      height: 36,
+      minWidth: 104,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "#FFFFFF",
+      borderWidth: 1,
+      borderColor: "#E5E7EB",
+      borderRadius: 8,
+      paddingHorizontal: 8,
+    },
+
+    staffDateText: {
+      marginLeft: 4,
+      color: "#4B5563",
+      fontSize: 12,
+      fontWeight: "400",
+    },
+    staffFilterButton: {
+      width: 36,
+      height: 36,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "#FFFFFF",
+      borderWidth: 1,
+      borderColor: "#E5E7EB",
+      borderRadius: 8,
+    },
+    
   });
 
   return styles;
